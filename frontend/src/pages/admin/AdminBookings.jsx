@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api from '../../services/api';
 import { CalendarDays, ShieldAlert, MessageSquare, MapPin, DollarSign, Calendar, Clock, ChefHat, User, Check } from 'lucide-react';
 
 export default function AdminBookings() {

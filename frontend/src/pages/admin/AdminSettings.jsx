@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api from '../../services/api';
 import { Settings, ShieldAlert, Check, Save, Image as ImageIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSettings() {
   const { fetchSettings: fetchGlobalSettings } = useAuth();

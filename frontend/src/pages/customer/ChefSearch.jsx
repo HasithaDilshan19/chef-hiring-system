@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, ChefHat, Star, User, X } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 export default function ChefSearch() {
   const [chefs, setChefs] = useState([]);
@@ -125,8 +125,8 @@ export default function ChefSearch() {
               <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-800"></div>
               
               <div className="absolute top-12 left-6 w-20 h-20 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden shadow-lg flex items-center justify-center">
-                {chef.chef_profile?.photo_url ? (
-                  <img src={chef.chef_profile.photo_url} alt={chef.name} className="w-full h-full object-cover" />
+                {(chef.chef_profile?.photo_url || chef.photo_url) ? (
+                  <img src={chef.chef_profile?.photo_url || chef.photo_url} alt={chef.name} className="w-full h-full object-cover" />
                 ) : (
                   <User className="h-8 w-8 text-slate-500" />
                 )}

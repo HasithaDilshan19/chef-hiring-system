@@ -246,6 +246,9 @@ class DashboardController extends Controller
             if ($profile && $profile->photo_url) {
                 $profile->photo_url = url($profile->photo_url);
             }
+            if ($chef->photo_url) {
+                $chef->photo_url = url($chef->photo_url);
+            }
             
             // Haversine formula
             $theta = $userLng - $profile->longitude;

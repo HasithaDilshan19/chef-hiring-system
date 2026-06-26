@@ -38,6 +38,9 @@ class ChefController extends Controller
             if ($chef->chefProfile && $chef->chefProfile->photo_url) {
                 $chef->chefProfile->photo_url = url($chef->chefProfile->photo_url);
             }
+            if ($chef->photo_url) {
+                $chef->photo_url = url($chef->photo_url);
+            }
             return $chef;
         });
 
@@ -66,6 +69,9 @@ class ChefController extends Controller
 
         if ($chef->chefProfile && $chef->chefProfile->photo_url) {
             $chef->chefProfile->photo_url = url($chef->chefProfile->photo_url);
+        }
+        if ($chef->photo_url) {
+            $chef->photo_url = url($chef->photo_url);
         }
 
         return response()->json([
