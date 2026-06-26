@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, ChefHat, Star, Clock, Calendar, Users, DollarSign } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ChefDetails() {
   const { id } = useParams();
@@ -84,8 +84,8 @@ export default function ChefDetails() {
         <div className="px-8 pb-8 relative">
           <div className="flex justify-between items-end -mt-16 mb-6">
             <div className="w-32 h-32 bg-white rounded-full p-1 shadow-md border border-gray-100 relative z-10 overflow-hidden">
-              {chef.chef_profile?.photo_url ? (
-                <img src={chef.chef_profile.photo_url} alt={chef.name} className="w-full h-full rounded-full object-cover" />
+              {(chef.chef_profile?.photo_url || chef.photo_url) ? (
+                <img src={chef.chef_profile?.photo_url || chef.photo_url} alt={chef.name} className="w-full h-full rounded-full object-cover" />
               ) : (
                 <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl font-bold">
                   {chef.name.charAt(0)}

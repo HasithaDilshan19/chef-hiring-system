@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import { Users, ChefHat, Calendar, CheckCircle2, ShieldAlert, LogOut } from 'lucide-react';
 
 const AdminDashboard = () => {

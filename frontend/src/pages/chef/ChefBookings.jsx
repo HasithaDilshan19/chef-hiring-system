@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import { Calendar, Clock, MapPin, DollarSign, ChefHat, Check, X, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+import { Calendar, Check, X, ShieldAlert, DollarSign, Users, MapPin, Clock } from 'lucide-react';
 
-const UserBookings = () => {
+const ChefBookings = () => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,10 +12,10 @@ const UserBookings = () => {
 
   const fetchBookings = async () => {
     try {
-      const response = await api.get('/bookings');
-      if (response.data.status === 'success') {
-        setBookings(response.data.bookings);
-      }
+      // The chef stats endpoint returns all the bookings for this chef
+      const response = await api.get('/chef/stats');
+      const statsData = response.data.data;
+      setBookings(statsData.bookings || []);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch bookings.');
@@ -28,24 +28,23 @@ const UserBookings = () => {
     fetchBookings();
   }, []);
 
-  const handleBookingAction = async (bookingId, action) => {
+  const handleBookingAction = async (bookingId, newStatus) => {
     try {
-      setError('');
-      setSuccessMsg('');
-      const response = await api.put(`/bookings/${bookingId}/status`, { status: action });
-      if (response.data.status === 'success') {
-        setSuccessMsg(`Booking successfully ${action}.`);
-        fetchBookings(); // Refresh the list
-      }
+      await api.put(`/bookings/${bookingId}/status`, { status: newStatus });
+      setSuccessMsg(`Booking successfully updated to ${newStatus}.`);
+      fetchBookings();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || `Failed to update booking to ${action}.`);
+      setError('Failed to update booking status.');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-slate-950">
+      <div className="flex justify-center items-center min-h-screen bg-slate-950 text-white">
         <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -57,10 +56,10 @@ const UserBookings = () => {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 mb-8 border-b border-slate-800">
         <div>
           <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
-            Booking History
+            Booking Management
           </span>
-          <h1 className="text-3xl font-bold text-white mt-2">My Bookings</h1>
-          <p className="text-sm text-slate-400">Track and manage your event bookings with chefs.</p>
+          <h1 className="text-3xl font-bold text-white mt-2">Gig Requests</h1>
+          <p className="text-sm text-slate-400">View and manage all your upcoming and past event bookings.</p>
         </div>
       </header>
 
@@ -119,12 +118,12 @@ const UserBookings = () => {
               <div className="space-y-3 mb-6 flex-1">
                 <div className="flex items-start gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800/50">
                   <div className="bg-blue-500/10 p-2 rounded-lg">
-                    <ChefHat size={16} className="text-blue-400" />
+                    <Users size={16} className="text-blue-400" />
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Chef Assigned</span>
-                    <div className="text-sm font-medium text-slate-200">{booking.chef?.name}</div>
-                    <div className="text-xs text-slate-400">{booking.chef?.phone || 'No phone provided'}</div>
+                    <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Customer</span>
+                    <div className="text-sm font-medium text-slate-200">{booking.customer?.name}</div>
+                    <div className="text-xs text-slate-400">{booking.customer?.phone || 'No phone provided'}</div>
                   </div>
                 </div>
 
@@ -152,17 +151,34 @@ const UserBookings = () => {
 
               <div className="pt-4 border-t border-slate-800">
                 {booking.status === 'pending' && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleBookingAction(booking.id, 'rejected')}
+                      className="flex-1 py-2.5 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl cursor-pointer transition-all duration-200 font-semibold text-sm flex justify-center items-center gap-2"
+                    >
+                      <X size={16} /> Decline
+                    </button>
+                    <button
+                      onClick={() => handleBookingAction(booking.id, 'accepted')}
+                      className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl cursor-pointer transition-all duration-200 text-sm flex justify-center items-center gap-2 shadow-lg shadow-amber-500/20"
+                    >
+                      <Check size={16} /> Accept Gig
+                    </button>
+                  </div>
+                )}
+
+                {booking.status === 'accepted' && (
                   <button
-                    onClick={() => handleBookingAction(booking.id, 'cancelled')}
-                    className="w-full py-2.5 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl cursor-pointer transition-all duration-200 font-semibold text-sm flex justify-center items-center gap-2"
+                    onClick={() => handleBookingAction(booking.id, 'completed')}
+                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl cursor-pointer transition-all duration-200 text-sm flex justify-center items-center gap-2 shadow-lg shadow-emerald-500/20"
                   >
-                    <X size={16} /> Cancel Booking
+                    <Check size={16} /> Mark as Completed
                   </button>
                 )}
                 
                 {['completed', 'cancelled', 'rejected'].includes(booking.status) && (
                   <div className="text-center text-xs text-slate-500 font-medium py-2">
-                    {booking.status === 'rejected' ? 'Chef declined this request' : 'No further actions required'}
+                    No further actions required
                   </div>
                 )}
               </div>
@@ -172,8 +188,8 @@ const UserBookings = () => {
           {bookings?.length === 0 && (
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-500 bg-slate-950/50 rounded-2xl border border-slate-800 border-dashed">
               <Calendar size={48} className="text-slate-700 mb-4" />
-              <p className="text-lg font-medium">No bookings found.</p>
-              <p className="text-sm mt-1">When you hire a chef for an event, it will appear here.</p>
+              <p className="text-lg font-medium">No booking requests found.</p>
+              <p className="text-sm mt-1">When customers book you for events, they will appear here.</p>
             </div>
           )}
         </div>
@@ -182,4 +198,4 @@ const UserBookings = () => {
   );
 };
 
-export default UserBookings;
+export default ChefBookings;

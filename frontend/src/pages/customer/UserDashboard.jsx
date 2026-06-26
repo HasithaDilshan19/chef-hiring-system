@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import { Search, MapPin, ChefHat, Star, Award, DollarSign, Calendar, Compass, ShieldAlert, LogOut, Check, X, Camera, User as UserIcon } from 'lucide-react';
 
 const UserDashboard = () => {
