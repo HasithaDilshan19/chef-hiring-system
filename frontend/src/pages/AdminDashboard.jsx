@@ -9,20 +9,32 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const fetchAdminStats = async () => {
+    try {
+      const response = await api.get('/admin/stats');
+      setData(response.data.data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch system data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAdminStats = async () => {
-      try {
-        const response = await api.get('/admin/stats');
-        setData(response.data.data);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch system data.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAdminStats();
   }, []);
+
+  const handleChefStatusUpdate = async (id, status) => {
+    try {
+      await api.put(`/admin/chef/${id}/status`, { status });
+      // Refresh the data to reflect changes
+      fetchAdminStats();
+    } catch (err) {
+      console.error('Failed to update chef status', err);
+      setError('Failed to update chef status.');
+    }
+  };
 
   if (loading) {
     return (
@@ -32,7 +44,7 @@ const AdminDashboard = () => {
     );
   }
 
-  const { stats, chefs, bookings, customers } = data || {};
+  const { stats, chefs, pending_chefs, bookings, customers } = data || {};
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
@@ -96,13 +108,53 @@ const AdminDashboard = () => {
         <div className="p-6 bg-slate-900/60 rounded-2xl border border-slate-800 flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-400">Pending Requests</p>
-            <h3 className="text-3xl font-bold mt-1 text-white">{stats?.pending_bookings || 0}</h3>
+            <h3 className="text-3xl font-bold mt-1 text-white">{stats?.pending_chef_requests || 0}</h3>
           </div>
           <div className="p-4 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/10">
             <ShieldAlert size={24} />
           </div>
         </div>
       </div>
+
+      {/* Pending Chef Requests */}
+      {pending_chefs && pending_chefs.length > 0 && (
+        <div className="mb-8 p-6 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+          <h2 className="text-xl font-bold mb-4 text-amber-400 flex items-center gap-2">
+            <ShieldAlert size={24} />
+            Pending Chef Registrations
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {pending_chefs.map(chef => (
+              <div key={chef.id} className="p-4 bg-slate-900 rounded-xl border border-slate-800">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{chef.name}</h3>
+                    <p className="text-xs text-slate-400">{chef.email}</p>
+                    <p className="text-xs text-slate-400 mt-1">Phone: {chef.phone}</p>
+                  </div>
+                  <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-semibold rounded-lg uppercase">
+                    Pending
+                  </span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between gap-3">
+                  <button
+                    onClick={() => handleChefStatusUpdate(chef.id, 'rejected')}
+                    className="flex-1 py-2 bg-slate-950 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 text-xs font-semibold rounded-lg transition-all"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleChefStatusUpdate(chef.id, 'active')}
+                    className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-lg transition-all"
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

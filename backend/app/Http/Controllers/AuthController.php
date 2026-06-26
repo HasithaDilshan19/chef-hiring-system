@@ -55,6 +55,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'phone' => $request->phone,
+            'status' => $request->role === 'chef' ? 'pending' : 'active',
         ]);
 
         // Create Chef Profile if role is chef
@@ -74,11 +75,23 @@ class AuthController extends Controller
             ]);
         }
 
-        // Generate Sanctum token
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         // Load relations
         $user->load('chefProfile');
+
+        // Do not issue token if chef is pending
+        if ($user->role === 'chef' && $user->status === 'pending') {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Registration successful. Your account is pending admin approval.',
+                'data' => [
+                    'user' => $user,
+                    'token' => null
+                ]
+            ], 201);
+        }
+
+        // Generate Sanctum token for active users
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
@@ -115,6 +128,20 @@ class AuthController extends Controller
                 'status' => 'error',
                 'message' => 'Invalid credentials'
             ], 401);
+        }
+
+        if ($user->status === 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Your account is pending admin approval.'
+            ], 403);
+        }
+
+        if ($user->status === 'rejected') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Your account registration was rejected.'
+            ], 403);
         }
 
         // Generate token

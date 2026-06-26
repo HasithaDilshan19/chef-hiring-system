@@ -20,13 +20,16 @@ class DashboardController extends Controller
         }
 
         $totalUsers = User::where('role', 'user')->count();
-        $totalChefs = User::where('role', 'chef')->count();
+        $totalChefs = User::where('role', 'chef')->where('status', 'active')->count();
         $totalBookings = Booking::count();
         $pendingBookings = Booking::where('status', 'pending')->count();
         $completedBookings = Booking::where('status', 'completed')->count();
 
         // Get all chefs with profiles
-        $chefs = User::where('role', 'chef')->with('chefProfile')->get();
+        $chefs = User::where('role', 'chef')->where('status', 'active')->with('chefProfile')->get();
+        
+        // Get all pending chefs
+        $pendingChefs = User::where('role', 'chef')->where('status', 'pending')->with('chefProfile')->get();
 
         // Get all bookings with customer and chef details
         $bookings = Booking::with(['customer', 'chef.chefProfile'])->latest()->get();
@@ -43,10 +46,47 @@ class DashboardController extends Controller
                     'total_bookings' => $totalBookings,
                     'pending_bookings' => $pendingBookings,
                     'completed_bookings' => $completedBookings,
+                    'pending_chef_requests' => $pendingChefs->count(),
                 ],
                 'chefs' => $chefs,
+                'pending_chefs' => $pendingChefs,
                 'bookings' => $bookings,
                 'customers' => $customers,
+            ]
+        ]);
+    }
+
+    /**
+     * Update a Chef's Registration Status (Admin)
+     */
+    public function updateChefStatus(Request $request, $id)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized access'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:active,rejected' // using 'active' instead of 'accepted'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $chef = User::findOrFail($id);
+
+        if (!$chef->isChef()) {
+            return response()->json(['message' => 'User is not a chef'], 400);
+        }
+
+        $chef->status = $request->status;
+        $chef->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chef status updated to ' . $request->status,
+            'data' => [
+                'chef' => $chef
             ]
         ]);
     }

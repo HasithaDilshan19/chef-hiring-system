@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard stats routes
     Route::get('/admin/stats', [DashboardController::class, 'adminStats']);
+    Route::put('/admin/chef/{id}/status', [DashboardController::class, 'updateChefStatus']);
     Route::get('/chef/stats', [DashboardController::class, 'chefStats']);
     Route::get('/user/stats', [DashboardController::class, 'userStats']);
 
