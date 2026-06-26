@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Search, MapPin, ChefHat, Star, Award, DollarSign, Calendar, Compass, ShieldAlert, LogOut, Check, X } from 'lucide-react';
+import { Search, MapPin, ChefHat, Star, Award, DollarSign, Calendar, Compass, ShieldAlert, LogOut, Check, X, Camera, User as UserIcon } from 'lucide-react';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -12,6 +12,7 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Location and search filters
   const [city, setCity] = useState('Colombo');
@@ -59,6 +60,34 @@ const UserDashboard = () => {
     fetchUserData();
   }, [city, selectedCuisine]);
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setError('');
+    
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      
+      const response = await api.post('/user/profile-photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.status === 'success') {
+        setSuccessMsg('Profile photo updated successfully!');
+        // Reload user session data to update global auth context and header
+        window.location.reload(); 
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to upload photo.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handleBookSubmit = async (e) => {
     e.preventDefault();
     if (!bookingChef) return;
@@ -105,12 +134,32 @@ const UserDashboard = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 mb-8 border-b border-slate-800">
-        <div>
-          <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
-            Sri Lankan Chef Finder
-          </span>
-          <h1 className="text-3xl font-bold text-white mt-2">Welcome, {user?.name}</h1>
-          <p className="text-sm text-slate-400">Quickly find and book available chefs near your event venue.</p>
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-800 bg-slate-900 shrink-0 flex items-center justify-center relative">
+              {photoUploading && (
+                <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-10">
+                  <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {user?.photo_url ? (
+                <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon className="w-8 h-8 text-slate-500" />
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-900 p-1.5 rounded-full cursor-pointer hover:bg-amber-400 transition-colors shadow-lg border border-slate-900 group-hover:scale-110">
+              <Camera size={12} />
+              <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={photoUploading} />
+            </label>
+          </div>
+          <div>
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
+              Sri Lankan Chef Finder
+            </span>
+            <h1 className="text-3xl font-bold text-white mt-2">Welcome, {user?.name}</h1>
+            <p className="text-sm text-slate-400">Quickly find and book available chefs near your event venue.</p>
+          </div>
         </div>
       </header>
 
@@ -187,22 +236,33 @@ const UserDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {recommendedChefs.map((chef) => (
                 <div key={chef.id} className="p-6 bg-slate-900/40 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-amber-500/20 hover:bg-slate-900/50 transition-all duration-300">
-                  <div>
+                  <div className="flex flex-col h-full">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg text-white">{chef.name}</h3>
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
-                          <MapPin size={12} className="text-amber-400" />
-                          <span>{chef.chef_profile.city} ({chef.distance} km away)</span>
-                        </p>
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-800 bg-slate-900 shrink-0">
+                          {(chef.chef_profile?.photo_url || chef.photo_url) ? (
+                            <img src={chef.chef_profile?.photo_url || chef.photo_url} alt={chef.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <UserIcon className="w-8 h-8" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg text-white">{chef.name}</h3>
+                          <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                            <MapPin size={12} className="text-amber-400" />
+                            <span>{chef.chef_profile.city} ({chef.distance} km away)</span>
+                          </p>
+                        </div>
                       </div>
-                      <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-bold font-mono">
+                      <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-bold font-mono shrink-0">
                         <Star size={12} fill="currentColor" />
                         <span>{parseFloat(chef.chef_profile.rating).toFixed(1)}</span>
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mt-3">
+                    <div className="flex flex-wrap gap-1 mt-4">
                       {chef.chef_profile.cuisine_specialities.map((cuisine, idx) => (
                         <span key={idx} className="px-2 py-0.5 bg-slate-950 text-slate-300 text-[10px] rounded border border-slate-800 font-semibold">
                           {cuisine}

@@ -121,9 +121,18 @@ export default function ChefSearch() {
       ) : chefs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {chefs.map(chef => (
-            <div key={chef.id} className="bg-slate-900/60 rounded-2xl shadow-sm border border-slate-800 overflow-hidden hover:border-amber-500/30 transition group">
+            <div key={chef.id} className="bg-slate-900/60 rounded-2xl shadow-sm border border-slate-800 overflow-hidden hover:border-amber-500/30 transition group relative">
               <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-800"></div>
-              <div className="px-6 pb-6 pt-6">
+              
+              <div className="absolute top-12 left-6 w-20 h-20 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden shadow-lg flex items-center justify-center">
+                {chef.chef_profile?.photo_url ? (
+                  <img src={chef.chef_profile.photo_url} alt={chef.name} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-8 w-8 text-slate-500" />
+                )}
+              </div>
+
+              <div className="px-6 pb-6 pt-10 mt-2">
                 <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">{chef.name}</h3>
                 <div className="flex items-center gap-1.5 text-sm text-slate-400 mt-2">
                   <MapPin className="h-4 w-4 text-amber-500" />

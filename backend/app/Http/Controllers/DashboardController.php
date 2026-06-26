@@ -106,6 +106,10 @@ class DashboardController extends Controller
             return response()->json(['message' => 'Chef profile not found'], 404);
         }
 
+        if ($profile->photo_url) {
+            $profile->photo_url = url($profile->photo_url);
+        }
+
         $bookings = Booking::where('chef_id', $user->id)->with('customer')->latest()->get();
 
         $stats = [
@@ -239,6 +243,10 @@ class DashboardController extends Controller
         $recommendedChefs = $chefs->map(function($chef) use ($userLat, $userLng) {
             $profile = $chef->chefProfile;
             
+            if ($profile && $profile->photo_url) {
+                $profile->photo_url = url($profile->photo_url);
+            }
+            
             // Haversine formula
             $theta = $userLng - $profile->longitude;
             $dist = sin(deg2rad($userLat)) * sin(deg2rad($profile->latitude)) +  cos(deg2rad($userLat)) * cos(deg2rad($profile->latitude)) * cos(deg2rad($theta));
@@ -322,5 +330,38 @@ class DashboardController extends Controller
             'message' => 'Booking request sent successfully',
             'data' => $booking
         ], 201);
+    }
+
+    /**
+     * Upload user profile photo.
+     */
+    public function updateUserPhoto(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid image',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $file = $request->file('photo');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('customer_photos', $filename, 'public');
+        
+        $user->photo_url = '/storage/' . $path;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Photo updated successfully',
+            'photo_url' => url($user->photo_url)
+        ]);
     }
 }

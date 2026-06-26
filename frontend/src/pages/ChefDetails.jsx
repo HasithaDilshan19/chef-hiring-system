@@ -83,10 +83,14 @@ export default function ChefDetails() {
         <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-700 relative"></div>
         <div className="px-8 pb-8 relative">
           <div className="flex justify-between items-end -mt-16 mb-6">
-            <div className="w-32 h-32 bg-white rounded-full p-1 shadow-md border border-gray-100 relative z-10">
-              <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl font-bold">
-                {chef.name.charAt(0)}
-              </div>
+            <div className="w-32 h-32 bg-white rounded-full p-1 shadow-md border border-gray-100 relative z-10 overflow-hidden">
+              {chef.chef_profile?.photo_url ? (
+                <img src={chef.chef_profile.photo_url} alt={chef.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl font-bold">
+                  {chef.name.charAt(0)}
+                </div>
+              )}
             </div>
             
             {user?.role === 'customer' && (

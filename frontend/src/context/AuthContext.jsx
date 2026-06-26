@@ -8,21 +8,41 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('chef_hiring_token') || null);
   const [loading, setLoading] = useState(true);
   const [systemName, setSystemName] = useState('ChefHire');
+  const [systemLogo, setSystemLogo] = useState(null);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data?.settings?.system_name) {
+        setSystemName(res.data.settings.system_name);
+      }
+      if (res.data?.settings?.system_logo) {
+        setSystemLogo(res.data.settings.system_logo);
+      }
+    } catch (err) {
+      console.error('Failed to load system settings');
+    }
+  };
 
   // Fetch public settings on mount
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await api.get('/settings');
-        if (res.data?.settings?.system_name) {
-          setSystemName(res.data.settings.system_name);
-        }
-      } catch (err) {
-        console.error('Failed to load system settings');
-      }
-    };
     fetchSettings();
   }, []);
+
+  // Update document title and favicon dynamically when system settings change
+  useEffect(() => {
+    document.title = systemName;
+    
+    if (systemLogo) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = systemLogo;
+    }
+  }, [systemName, systemLogo]);
 
   // Check if token exists on mount and fetch user details
   useEffect(() => {
@@ -116,6 +136,8 @@ export const AuthProvider = ({ children }) => {
     isChef,
     isUser,
     systemName,
+    systemLogo,
+    fetchSettings,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

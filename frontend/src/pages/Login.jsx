@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, ChefHat } from 'lucide-react';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, systemName, systemLogo } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,10 +51,14 @@ const Login = () => {
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl -z-10"></div>
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
-            <ChefHat size={32} />
+          <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30 flex items-center justify-center overflow-hidden">
+            {systemLogo ? (
+              <img src={systemLogo} alt={systemName} className="w-8 h-8 object-contain" />
+            ) : (
+              <ChefHat size={32} />
+            )}
           </div>
-          <span className="text-2xl font-bold tracking-tight text-amber-500 font-sans">රසවතී / Rasawathee</span>
+          <span className="text-2xl font-bold tracking-tight text-amber-500 font-sans">{systemName || 'ChefHub'}</span>
         </div>
 
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white mb-4">
