@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Settings, ShieldAlert, Check, Save } from 'lucide-react';
+import { Settings, ShieldAlert, Check, Save, Image as ImageIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminSettings() {
+  const { fetchSettings: fetchGlobalSettings } = useAuth();
+  
   const [settings, setSettings] = useState({
     system_name: 'ChefHire',
     contact_email: 'support@chefhire.com',
@@ -10,6 +13,8 @@ export default function AdminSettings() {
     commission_rate: '10',
   });
   
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +25,9 @@ export default function AdminSettings() {
       const response = await api.get('/admin/settings');
       if (response.data.status === 'success' && Object.keys(response.data.settings).length > 0) {
         setSettings({ ...settings, ...response.data.settings });
+        if (response.data.settings.system_logo) {
+           setLogoPreview(response.data.settings.system_logo);
+        }
       }
     } catch (err) {
       setError('Failed to load settings.');
@@ -36,6 +44,14 @@ export default function AdminSettings() {
     setSettings({ ...settings, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -43,9 +59,32 @@ export default function AdminSettings() {
     setSuccessMsg('');
     
     try {
-      const response = await api.put('/admin/settings', settings);
+      const formData = new FormData();
+      Object.keys(settings).forEach(key => {
+        formData.append(key, settings[key] || '');
+      });
+      if (logoFile) {
+        formData.append('system_logo', logoFile);
+      }
+      
+      // We use post with _method=PUT to send FormData in Laravel
+      formData.append('_method', 'PUT');
+
+      const response = await api.post('/admin/settings', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
       if (response.data.status === 'success') {
         setSuccessMsg('Settings updated successfully!');
+        if (fetchGlobalSettings) {
+           fetchGlobalSettings();
+        }
+        // Also refresh local preview
+        if (response.data.settings?.system_logo) {
+           setLogoPreview(response.data.settings.system_logo);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save settings.');
@@ -106,6 +145,30 @@ export default function AdminSettings() {
                 placeholder="e.g. ChefHire"
               />
               <p className="text-xs text-slate-500 mt-2">This is the public-facing name of the application.</p>
+            </div>
+            
+            <div className="mt-6">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                System Logo
+              </label>
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo Preview" className="w-full h-full object-contain" />
+                  ) : (
+                    <ImageIcon className="text-slate-600" size={24} />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20 transition-all cursor-pointer"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">Recommended size: 200x200px. Max size: 2MB.</p>
+                </div>
+              </div>
             </div>
           </div>
 

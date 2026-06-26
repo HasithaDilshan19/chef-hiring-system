@@ -34,7 +34,12 @@ class ChefController extends Controller
             });
         }
 
-        $chefs = $query->get();
+        $chefs = $query->get()->map(function ($chef) {
+            if ($chef->chefProfile && $chef->chefProfile->photo_url) {
+                $chef->chefProfile->photo_url = url($chef->chefProfile->photo_url);
+            }
+            return $chef;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -57,6 +62,10 @@ class ChefController extends Controller
                 'status' => 'error',
                 'message' => 'Chef not found'
             ], 404);
+        }
+
+        if ($chef->chefProfile && $chef->chefProfile->photo_url) {
+            $chef->chefProfile->photo_url = url($chef->chefProfile->photo_url);
         }
 
         return response()->json([
@@ -82,6 +91,7 @@ class ChefController extends Controller
             'city' => 'nullable|string|max:255',
             'cuisine_specialities' => 'nullable|array',
             'availability_status' => 'nullable|string|in:available,busy,offline',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $profile = $user->chefProfile;
@@ -89,9 +99,21 @@ class ChefController extends Controller
         if (!$profile) {
             $profile = new ChefProfile(['user_id' => $user->id]);
         }
+        
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('chef_photos', $filename, 'public');
+            $profile->photo_url = '/storage/' . $path;
+        }
 
-        $profile->fill($validatedData);
+        $profile->fill(collect($validatedData)->except('photo')->toArray());
         $profile->save();
+        
+        // Format for response
+        if ($profile->photo_url) {
+            $profile->photo_url = url($profile->photo_url);
+        }
 
         return response()->json([
             'status' => 'success',

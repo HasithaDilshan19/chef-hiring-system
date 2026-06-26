@@ -12,6 +12,7 @@ Route::get('/settings', function () {
         'status' => 'success',
         'settings' => [
             'system_name' => $settings['system_name'] ?? 'ChefHire',
+            'system_logo' => isset($settings['system_logo']) ? url($settings['system_logo']) : null,
         ]
     ]);
 });
@@ -29,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/chef/{id}/status', [DashboardController::class, 'updateChefStatus']);
     Route::get('/chef/stats', [DashboardController::class, 'chefStats']);
     Route::get('/user/stats', [DashboardController::class, 'userStats']);
+    Route::post('/user/profile-photo', [DashboardController::class, 'updateUserPhoto']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
 
     // Chef Profile & Search Routes
     Route::get('/chefs', [\App\Http\Controllers\ChefController::class, 'index']);

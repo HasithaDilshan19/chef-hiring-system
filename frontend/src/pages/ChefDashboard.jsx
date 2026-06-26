@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { ChefHat, ToggleLeft, ToggleRight, DollarSign, Calendar, Star, FileText, Check, X, ShieldAlert, LogOut } from 'lucide-react';
+import { ChefHat, ToggleLeft, ToggleRight, DollarSign, Calendar, Star, FileText, Check, X, ShieldAlert, LogOut, Camera, User } from 'lucide-react';
 
 const ChefDashboard = () => {
   const { user, logout } = useAuth();
@@ -18,6 +18,9 @@ const ChefDashboard = () => {
   const [specialities, setSpecialities] = useState([]);
   const [updating, setUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const availableCuisines = ['Sri Lankan', 'Indian', 'Western', 'Chinese', 'Italian'];
 
@@ -31,10 +34,13 @@ const ChefDashboard = () => {
       if (statsData.profile) {
         setExperience(statsData.profile.experience_years);
         setRate(statsData.profile.hourly_rate);
-        setCity(statsData.profile.city);
+        setCity(statsData.profile.city || '');
         setBio(statsData.profile.bio || '');
-        setAvailability(statsData.profile.availability_status);
+        setAvailability(statsData.profile.availability_status || 'available');
         setSpecialities(statsData.profile.cuisine_specialities || []);
+        if (statsData.profile.photo_url) {
+          setPhotoPreview(statsData.profile.photo_url);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -56,6 +62,14 @@ const ChefDashboard = () => {
     }
   };
 
+  const handlePhotoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setUpdating(true);
@@ -63,14 +77,27 @@ const ChefDashboard = () => {
     setError('');
 
     try {
-      await api.put('/chef/profile', {
-        experience_years: parseInt(experience),
-        cuisine_specialities: specialities,
-        hourly_rate: parseFloat(rate),
-        city,
-        bio,
-        availability_status: availability,
+      const formData = new FormData();
+      formData.append('experience_years', experience);
+      formData.append('hourly_rate', rate);
+      formData.append('city', city);
+      formData.append('bio', bio);
+      formData.append('availability_status', availability);
+      
+      specialities.forEach((item, index) => {
+        formData.append(`cuisine_specialities[${index}]`, item);
       });
+      
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      }
+      
+      formData.append('_method', 'PUT');
+
+      await api.post('/chef/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
       setSuccessMsg('Your chef profile has been updated successfully!');
       fetchChefStats();
     } catch (err) {
@@ -97,12 +124,23 @@ const ChefDashboard = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 mb-8 border-b border-slate-800">
-        <div>
-          <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
-            Professional Chef Workspace
-          </span>
-          <h1 className="text-3xl font-bold text-white mt-2">{user?.name}</h1>
-          <p className="text-sm text-slate-400">Manage your profile, availability, and event gigs.</p>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-800 bg-slate-900 shrink-0">
+            {photoPreview ? (
+              <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-amber-500/10 text-amber-500">
+                <ChefHat size={32} />
+              </div>
+            )}
+          </div>
+          <div>
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
+              Professional Chef Workspace
+            </span>
+            <h1 className="text-3xl font-bold text-white mt-2">{user?.name}</h1>
+            <p className="text-sm text-slate-400">Manage your profile, availability, and event gigs.</p>
+          </div>
         </div>
       </header>
 
@@ -169,6 +207,29 @@ const ChefDashboard = () => {
           <h2 className="text-xl font-bold mb-4 text-white">Update Chef Profile</h2>
           
           <form onSubmit={handleUpdateProfile} className="space-y-4">
+            
+            <div className="flex flex-col items-center sm:flex-row sm:items-center gap-6 pb-4 mb-4 border-b border-slate-800/50">
+              <div className="relative group">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-900 flex items-center justify-center shrink-0">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 text-slate-500" />
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-900 p-1.5 rounded-full cursor-pointer hover:bg-amber-400 transition-colors shadow-lg border border-slate-900 group-hover:scale-110">
+                  <Camera size={14} />
+                  <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
+                </label>
+              </div>
+              <div className="text-center sm:text-left">
+                <h3 className="text-sm font-semibold text-white">Profile Photo</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Upload a photo to appear in search results. Max 2MB.
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Availability Status

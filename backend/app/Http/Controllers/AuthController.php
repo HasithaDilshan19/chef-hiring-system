@@ -92,6 +92,10 @@ class AuthController extends Controller
 
         // Generate Sanctum token for active users
         $token = $user->createToken('auth_token')->plainTextToken;
+        
+        if ($user->photo_url) {
+            $user->photo_url = url($user->photo_url);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -149,6 +153,10 @@ class AuthController extends Controller
 
         // Load relations
         $user->load('chefProfile');
+        
+        if ($user->photo_url) {
+            $user->photo_url = url($user->photo_url);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -179,12 +187,52 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('chefProfile');
+        
+        if ($user->photo_url) {
+            $user->photo_url = url($user->photo_url);
+        }
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'user' => $user
             ]
+        ]);
+    }
+
+    /**
+     * Update the authenticated user's password.
+     */
+    public function updatePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Current password does not match'
+            ], 400);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password updated successfully'
         ]);
     }
 }

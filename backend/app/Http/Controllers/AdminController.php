@@ -123,7 +123,11 @@ class AdminController extends Controller
         }
 
         // Get all settings as key-value pairs
-        $settings = SystemSetting::pluck('value', 'key');
+        $settings = SystemSetting::pluck('value', 'key')->toArray();
+        
+        if (isset($settings['system_logo'])) {
+            $settings['system_logo'] = url($settings['system_logo']);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -146,9 +150,27 @@ class AdminController extends Controller
             'contact_email' => 'nullable|email',
             'contact_phone' => 'nullable|string',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
+            'system_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
+        // Handle file upload
+        if ($request->hasFile('system_logo')) {
+            $file = $request->file('system_logo');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            // Store the file in storage/app/public/logos
+            $path = $file->storeAs('logos', $filename, 'public');
+            
+            // Save the path string to settings
+            SystemSetting::updateOrCreate(
+                ['key' => 'system_logo'],
+                ['value' => '/storage/' . $path]
+            );
+        }
+
         foreach ($validatedData as $key => $value) {
+            // Skip the file input in the loop since we handled it
+            if ($key === 'system_logo') continue;
+
             if ($value !== null) {
                 SystemSetting::updateOrCreate(
                     ['key' => $key],
@@ -157,7 +179,10 @@ class AdminController extends Controller
             }
         }
 
-        $updatedSettings = SystemSetting::pluck('value', 'key');
+        $updatedSettings = SystemSetting::pluck('value', 'key')->toArray();
+        if (isset($updatedSettings['system_logo'])) {
+            $updatedSettings['system_logo'] = url($updatedSettings['system_logo']);
+        }
 
         return response()->json([
             'status' => 'success',

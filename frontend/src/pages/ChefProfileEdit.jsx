@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle, Camera, User } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +10,9 @@ export default function ChefProfileEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   
   const [formData, setFormData] = useState({
     bio: '',
@@ -34,6 +37,9 @@ export default function ChefProfileEdit() {
           availability_status: profile.availability_status || 'available',
           cuisine_specialities: profile.cuisine_specialities || []
         });
+        if (profile.photo_url) {
+          setPhotoPreview(profile.photo_url);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -65,13 +71,42 @@ export default function ChefProfileEdit() {
     });
   };
 
+  const handlePhotoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
 
     try {
-      const response = await api.put('/chef/profile', formData);
+      const formPayload = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key === 'cuisine_specialities') {
+          // Append arrays properly for FormData
+          formData[key].forEach((item, index) => {
+            formPayload.append(`cuisine_specialities[${index}]`, item);
+          });
+        } else {
+          formPayload.append(key, formData[key] || '');
+        }
+      });
+      
+      if (photoFile) {
+        formPayload.append('photo', photoFile);
+      }
+      
+      // Laravel requires _method=PUT when sending FormData to update
+      formPayload.append('_method', 'PUT');
+
+      const response = await api.post('/chef/profile', formPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       if (response.data.status === 'success') {
         alert('Profile updated successfully!');
         navigate('/chef');
@@ -115,6 +150,33 @@ export default function ChefProfileEdit() {
       )}
 
       <form onSubmit={handleSubmit} className="bg-slate-900/60 rounded-2xl border border-slate-800 p-8 space-y-6">
+        {/* Photo Upload Section */}
+        <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 pb-6 border-b border-slate-800">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-800 bg-slate-950 flex items-center justify-center shrink-0">
+              {photoPreview ? (
+                <img src={photoPreview} alt="Profile Preview" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-slate-500" />
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-900 p-1.5 rounded-full cursor-pointer hover:bg-amber-400 transition-colors shadow-lg border-2 border-slate-900 group-hover:scale-110">
+              <Camera size={16} />
+              <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
+            </label>
+          </div>
+          <div className="text-center sm:text-left mt-2">
+            <h3 className="text-lg font-semibold text-white">Profile Photo</h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Upload a professional photo to stand out to customers. Max size: 2MB.
+            </p>
+            <label className="inline-block mt-3 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg cursor-pointer transition-colors border border-slate-700">
+              Choose Image
+              <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
+            </label>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">Bio / About Me</label>
           <textarea 
