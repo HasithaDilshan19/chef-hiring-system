@@ -15,6 +15,11 @@ class ChefController extends Controller
     {
         $query = User::where('role', 'chef')->with('chefProfile');
 
+        // Optional filtering by name
+        if ($request->has('name') && !empty($request->name)) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
         // Optional filtering by city
         if ($request->has('city') && !empty($request->city)) {
             $query->whereHas('chefProfile', function($q) use ($request) {
@@ -22,10 +27,10 @@ class ChefController extends Controller
             });
         }
 
-        // Optional filtering by cuisine
+        // Optional filtering by cuisine (case-insensitive search on the json text)
         if ($request->has('cuisine') && !empty($request->cuisine)) {
             $query->whereHas('chefProfile', function($q) use ($request) {
-                $q->whereJsonContains('cuisine_specialities', $request->cuisine);
+                $q->where('cuisine_specialities', 'like', '%' . $request->cuisine . '%');
             });
         }
 

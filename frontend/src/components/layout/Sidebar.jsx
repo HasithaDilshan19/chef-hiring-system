@@ -12,7 +12,7 @@ export default function Sidebar() {
     links = [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'Find Chefs', path: '/search', icon: Users },
-      { name: 'My Bookings', path: '/dashboard', icon: CalendarDays }, // Links to dashboard for now
+      { name: 'My Bookings', path: '/bookings', icon: CalendarDays },
     ];
   } else if (isChef()) {
     links = [

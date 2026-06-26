@@ -128,9 +128,9 @@ const UserDashboard = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Side: Chef Recommendation / Search (8 Columns) */}
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 gap-8">
+        {/* Main Content: Chef Recommendation / Search */}
+        <div className="space-y-6">
           {/* Location-aware search filters */}
           <div className="p-6 bg-slate-900/60 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-3 w-full md:w-auto">
@@ -247,58 +247,6 @@ const UserDashboard = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Right Side: Your Bookings (4 Columns) */}
-        <div className="lg:col-span-4 p-6 bg-slate-900/40 rounded-2xl border border-slate-800 h-fit">
-          <h2 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
-            <Calendar className="text-amber-500" size={20} />
-            <span>My Bookings</span>
-          </h2>
-
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-            {bookings.map((booking) => (
-              <div key={booking.id} className="p-4 bg-slate-950/80 rounded-xl border border-slate-800/80">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-white text-sm">{booking.event_type}</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{booking.event_date}</p>
-                  </div>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase border ${
-                    booking.status === 'pending'
-                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                      : booking.status === 'accepted'
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  }`}>
-                    {booking.status}
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-slate-500 pt-2 border-t border-slate-900">
-                  <div>
-                    <span>Chef Assigned</span>
-                    <span className="block text-slate-300 font-medium">{booking.chef?.name}</span>
-                  </div>
-                  <div>
-                    <span>Total Bill</span>
-                    <span className="block text-amber-400 font-semibold font-mono">LKR {parseFloat(booking.total_price).toLocaleString()}</span>
-                  </div>
-                </div>
-                
-                {/* Cancellation backup simulation detail */}
-                {booking.status === 'cancelled' && (
-                  <div className="mt-2.5 p-2 bg-amber-500/5 border border-amber-500/10 rounded-lg text-[10px] text-amber-400/90 leading-relaxed">
-                    💡 Chef cancelled. Search for another chef in the left list or filter to see instantly available alternatives.
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {bookings.length === 0 && (
-              <p className="text-center py-6 text-slate-500 text-sm">No bookings placed yet.</p>
-            )}
           </div>
         </div>
       </div>
