@@ -18,7 +18,7 @@ export default function Sidebar() {
     links = [
       { name: 'Dashboard', path: '/chef', icon: LayoutDashboard },
       { name: 'My Profile', path: '/chef/profile/edit', icon: UserCircle },
-      { name: 'Bookings', path: '/chef', icon: CalendarDays },
+      { name: 'Bookings', path: '/chef/bookings', icon: CalendarDays },
     ];
   } else if (isAdmin()) {
     links = [

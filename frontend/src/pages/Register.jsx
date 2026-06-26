@@ -95,12 +95,20 @@ const Register = () => {
     setLoading(false);
 
     if (result.success) {
-      if (result.user.role === 'admin') {
-        navigate('/admin');
-      } else if (result.user.role === 'chef') {
-        navigate('/chef');
+      if (result.isPending) {
+        // Show success message but don't redirect to dashboard since they can't login
+        setError('');
+        setFieldErrors({});
+        alert(result.message);
+        navigate('/login');
       } else {
-        navigate('/dashboard');
+        if (result.user.role === 'admin') {
+          navigate('/admin');
+        } else if (result.user.role === 'chef') {
+          navigate('/chef');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } else {
       setError(result.message);

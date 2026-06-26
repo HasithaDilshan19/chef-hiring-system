@@ -10,6 +10,7 @@ import UserDashboard from './pages/UserDashboard';
 import ChefSearch from './pages/ChefSearch';
 import ChefDetails from './pages/ChefDetails';
 import ChefProfileEdit from './pages/ChefProfileEdit';
+import ChefBookings from './pages/ChefBookings';
 import Layout from './components/layout/Layout';
 
 // Helper component to redirect authenticated users to their correct dashboard
@@ -53,6 +54,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['chef']}>
                   <ChefDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chef/bookings"
+              element={
+                <ProtectedRoute allowedRoles={['chef']}>
+                  <ChefBookings />
                 </ProtectedRoute>
               }
             />

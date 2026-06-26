@@ -81,16 +81,7 @@ const ChefDashboard = () => {
     }
   };
 
-  const handleBookingAction = async (bookingId, newStatus) => {
-    try {
-      await api.put(`/bookings/${bookingId}/status`, { status: newStatus });
-      setSuccessMsg(`Booking successfully updated to ${newStatus}.`);
-      fetchChefStats();
-    } catch (err) {
-      console.error(err);
-      setError('Failed to update booking status.');
-    }
-  };
+
 
   if (loading) {
     return (
@@ -100,7 +91,7 @@ const ChefDashboard = () => {
     );
   }
 
-  const { stats, bookings } = data || {};
+  const { stats } = data || {};
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
@@ -172,9 +163,9 @@ const ChefDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Profile Editor (Left Panel) */}
-        <div className="lg:col-span-5 p-6 bg-slate-900/40 rounded-2xl border border-slate-800">
+      <div className="max-w-4xl mx-auto">
+        {/* Profile Editor */}
+        <div className="p-6 bg-slate-900/40 rounded-2xl border border-slate-800">
           <h2 className="text-xl font-bold mb-4 text-white">Update Chef Profile</h2>
           
           <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -282,103 +273,11 @@ const ChefDashboard = () => {
             <button
               type="submit"
               disabled={updating}
-              className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 text-sm"
+              className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 text-sm mt-4"
             >
               {updating ? 'Saving Profile...' : 'Save Profile Changes'}
             </button>
           </form>
-        </div>
-
-        {/* Gig Requests (Right Panel) */}
-        <div className="lg:col-span-7 p-6 bg-slate-900/40 rounded-2xl border border-slate-800">
-          <h2 className="text-xl font-bold mb-4 text-white">Hiring & Booking Requests</h2>
-          
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-            {bookings?.map((booking) => (
-              <div
-                key={booking.id}
-                className={`p-5 rounded-2xl border transition-all ${
-                  booking.status === 'pending'
-                    ? 'bg-slate-900 border-amber-500/20 hover:border-amber-500/40'
-                    : 'bg-slate-950/80 border-slate-800/80'
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{booking.event_type}</h3>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Date: <span className="text-slate-200">{booking.event_date}</span> | Time:{' '}
-                      <span className="text-slate-200">{booking.event_time}</span>
-                    </p>
-                  </div>
-                  <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full uppercase border ${
-                    booking.status === 'pending'
-                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                      : booking.status === 'accepted'
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  }`}>
-                    {booking.status}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-400 py-3 border-t border-b border-slate-950">
-                  <div>
-                    <span className="block text-slate-500 uppercase tracking-wide text-[10px]">Customer</span>
-                    <span className="text-slate-300 font-semibold">{booking.customer?.name}</span>
-                    <span className="block text-[10px] text-slate-400">{booking.customer?.phone}</span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500 uppercase tracking-wide text-[10px]">Guests Count</span>
-                    <span className="text-slate-300 font-semibold">{booking.guests_count} Pax</span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500 uppercase tracking-wide text-[10px]">Agreed Budget</span>
-                    <span className="text-amber-400 font-semibold font-mono">LKR {parseFloat(booking.total_price).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs text-slate-400">
-                    <span className="block text-slate-500 uppercase tracking-wide text-[10px]">Venue Location</span>
-                    <span className="text-slate-300">{booking.location}</span>
-                  </div>
-                  
-                  {booking.status === 'pending' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleBookingAction(booking.id, 'cancelled')}
-                        className="p-2 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl cursor-pointer transition-all duration-200"
-                        title="Decline Offer"
-                      >
-                        <X size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleBookingAction(booking.id, 'accepted')}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer transition-all duration-200"
-                      >
-                        <Check size={14} />
-                        <span>Accept Gig</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {booking.status === 'accepted' && (
-                    <button
-                      onClick={() => handleBookingAction(booking.id, 'completed')}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer transition-all duration-200"
-                    >
-                      <Check size={14} />
-                      <span>Mark Completed</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {bookings?.length === 0 && (
-              <p className="text-center py-6 text-slate-500">No booking requests found.</p>
-            )}
-          </div>
         </div>
       </div>
     </div>

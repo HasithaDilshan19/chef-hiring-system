@@ -44,7 +44,7 @@ class ChefController extends Controller
     {
         $chef = User::where('id', $id)
             ->where('role', 'chef')
-            ->with(['chefProfile', 'bookings'])
+            ->with(['chefProfile'])
             ->first();
 
         if (!$chef) {

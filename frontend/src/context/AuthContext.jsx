@@ -51,10 +51,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/register', data);
       const { user: registeredUser, token: authToken } = response.data.data;
       
-      localStorage.setItem('chef_hiring_token', authToken);
-      setToken(authToken);
-      setUser(registeredUser);
-      return { success: true, user: registeredUser };
+      if (authToken) {
+        localStorage.setItem('chef_hiring_token', authToken);
+        setToken(authToken);
+        setUser(registeredUser);
+      }
+      // If no authToken, it means the account is pending approval (e.g. chef)
+      return { success: true, user: registeredUser, isPending: !authToken, message: response.data.message };
     } catch (error) {
       console.error('Registration error:', error);
       const message = error.response?.data?.message || 'Registration failed.';

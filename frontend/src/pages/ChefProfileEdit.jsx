@@ -21,10 +21,6 @@ export default function ChefProfileEdit() {
   
   const [cuisineInput, setCuisineInput] = useState('');
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       // The current chef's profile can be fetched by getting their own user ID
@@ -46,6 +42,10 @@ export default function ChefProfileEdit() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user.id]);
 
   const handleAddCuisine = (e) => {
     e.preventDefault();
@@ -96,30 +96,30 @@ export default function ChefProfileEdit() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Profile</h1>
-          <p className="text-gray-600">Update your chef details and availability.</p>
+          <h1 className="text-3xl font-bold text-white">Edit Profile</h1>
+          <p className="text-slate-400">Update your chef details and availability.</p>
         </div>
         <button 
           onClick={() => navigate('/chef')}
-          className="text-gray-500 hover:text-gray-700 font-medium"
+          className="text-slate-400 hover:text-white font-medium transition-colors"
         >
           Cancel
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-2 mb-6">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-2 mb-6">
           <AlertCircle className="h-5 w-5" />
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-slate-900/60 rounded-2xl border border-slate-800 p-8 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bio / About Me</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Bio / About Me</label>
           <textarea 
             rows="4"
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 resize-none transition-colors"
             value={formData.bio}
             onChange={(e) => setFormData({...formData, bio: e.target.value})}
             placeholder="Tell customers about your culinary journey..."
@@ -128,12 +128,12 @@ export default function ChefProfileEdit() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate ($)</label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Hourly Rate ($)</label>
             <input 
               type="number" 
               min="0"
               step="0.01"
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors"
               value={formData.hourly_rate}
               onChange={(e) => setFormData({...formData, hourly_rate: e.target.value})}
               placeholder="e.g. 50.00"
@@ -141,10 +141,10 @@ export default function ChefProfileEdit() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City / Base Location</label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">City / Base Location</label>
             <input 
               type="text" 
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors"
               value={formData.city}
               onChange={(e) => setFormData({...formData, city: e.target.value})}
               placeholder="e.g. Colombo"
@@ -153,9 +153,9 @@ export default function ChefProfileEdit() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Availability Status</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Availability Status</label>
           <select 
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors appearance-none"
             value={formData.availability_status}
             onChange={(e) => setFormData({...formData, availability_status: e.target.value})}
           >
@@ -166,11 +166,11 @@ export default function ChefProfileEdit() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cuisine Specialties</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Cuisine Specialties</label>
           <div className="flex gap-2 mb-3">
             <input 
               type="text" 
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors"
               value={cuisineInput}
               onChange={(e) => setCuisineInput(e.target.value)}
               onKeyPress={(e) => {
@@ -181,36 +181,36 @@ export default function ChefProfileEdit() {
             <button 
               type="button"
               onClick={handleAddCuisine}
-              className="bg-gray-100 px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-200 transition"
+              className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors border border-slate-700"
             >
               Add
             </button>
           </div>
           
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-3">
             {formData.cuisine_specialities.map((cuisine, idx) => (
-              <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border border-blue-100">
+              <span key={idx} className="bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 border border-amber-500/20">
                 {cuisine}
                 <button 
                   type="button"
                   onClick={() => handleRemoveCuisine(cuisine)}
-                  className="text-blue-400 hover:text-blue-600"
+                  className="text-amber-500 hover:text-amber-300 transition-colors ml-1"
                 >
                   ✕
                 </button>
               </span>
             ))}
             {formData.cuisine_specialities.length === 0 && (
-              <span className="text-gray-400 text-sm italic">No specialties added yet.</span>
+              <span className="text-slate-500 text-sm italic">No specialties added yet.</span>
             )}
           </div>
         </div>
 
-        <div className="pt-6 border-t border-gray-100">
+        <div className="pt-6 mt-6 border-t border-slate-800">
           <button 
             type="submit" 
             disabled={saving}
-            className="w-full flex justify-center items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+            className="w-full flex justify-center items-center gap-2 bg-amber-500 text-slate-950 px-6 py-3.5 rounded-xl font-bold hover:bg-amber-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
           >
             <Save className="h-5 w-5" />
             {saving ? 'Saving Changes...' : 'Save Profile'}
