@@ -10,6 +10,7 @@ import UserDashboard from './pages/UserDashboard';
 import ChefSearch from './pages/ChefSearch';
 import ChefDetails from './pages/ChefDetails';
 import ChefProfileEdit from './pages/ChefProfileEdit';
+import Layout from './components/layout/Layout';
 
 // Helper component to redirect authenticated users to their correct dashboard
 const RootRedirect = () => {
@@ -38,54 +39,56 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           {/* Protected Role-Based Routes */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/chef"
-            element={
-              <ProtectedRoute allowedRoles={['chef']}>
-                <ChefDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['user']}>
-                <UserDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/search"
-            element={
-              <ProtectedRoute allowedRoles={['user', 'admin']}>
-                <ChefSearch />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/chefs/:id"
-            element={
-              <ProtectedRoute allowedRoles={['user', 'admin']}>
-                <ChefDetails />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/chef/profile/edit"
-            element={
-              <ProtectedRoute allowedRoles={['chef']}>
-                <ChefProfileEdit />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<Layout />}>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chef"
+              element={
+                <ProtectedRoute allowedRoles={['chef']}>
+                  <ChefDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['user']}>
+                  <UserDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute allowedRoles={['user', 'admin']}>
+                  <ChefSearch />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chefs/:id"
+              element={
+                <ProtectedRoute allowedRoles={['user', 'admin']}>
+                  <ChefDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chef/profile/edit"
+              element={
+                <ProtectedRoute allowedRoles={['chef']}>
+                  <ChefProfileEdit />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
           {/* Default / Fallback Route */}
           <Route path="/" element={<RootRedirect />} />
