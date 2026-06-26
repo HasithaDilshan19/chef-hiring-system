@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings } from 'lucide-react';
 
 export default function Sidebar() {
-  const { user, isUser, isChef, isAdmin } = useAuth();
+  const { user, isUser, isChef, isAdmin, systemName } = useAuth();
 
   let links = [];
 
@@ -23,6 +23,9 @@ export default function Sidebar() {
   } else if (isAdmin()) {
     links = [
       { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+      { name: 'Users', path: '/admin/users', icon: Users },
+      { name: 'All Bookings', path: '/admin/bookings', icon: CalendarDays },
+      { name: 'Settings', path: '/admin/settings', icon: Settings },
     ];
   }
 
@@ -30,7 +33,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden md:flex flex-col h-screen fixed left-0 top-0">
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
         <ChefHat className="text-orange-500 w-8 h-8 mr-3" />
-        <span className="text-xl font-bold text-white tracking-wide">ChefHire</span>
+        <span className="text-xl font-bold text-white tracking-wide truncate">{systemName}</span>
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">

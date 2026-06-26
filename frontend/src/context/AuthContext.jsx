@@ -7,6 +7,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('chef_hiring_token') || null);
   const [loading, setLoading] = useState(true);
+  const [systemName, setSystemName] = useState('ChefHire');
+
+  // Fetch public settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data?.settings?.system_name) {
+          setSystemName(res.data.settings.system_name);
+        }
+      } catch (err) {
+        console.error('Failed to load system settings');
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Check if token exists on mount and fetch user details
   useEffect(() => {
@@ -99,6 +115,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isChef,
     isUser,
+    systemName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

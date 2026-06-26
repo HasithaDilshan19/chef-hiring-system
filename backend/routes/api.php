@@ -5,6 +5,17 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 
 // Public Auth routes
+// Public routes
+Route::get('/settings', function () {
+    $settings = \App\Models\SystemSetting::pluck('value', 'key');
+    return response()->json([
+        'status' => 'success',
+        'settings' => [
+            'system_name' => $settings['system_name'] ?? 'ChefHire',
+        ]
+    ]);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -28,4 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [\App\Http\Controllers\BookingController::class, 'store']);
     Route::get('/bookings', [\App\Http\Controllers\BookingController::class, 'index']);
     Route::put('/bookings/{id}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus']);
+
+    // Admin Management Routes
+    Route::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'getUsers']);
+    Route::put('/admin/users/{id}/status', [\App\Http\Controllers\AdminController::class, 'updateUserStatus']);
+    Route::delete('/admin/users/{id}', [\App\Http\Controllers\AdminController::class, 'deleteUser']);
+    Route::post('/admin/bookings/{id}/email-alert', [\App\Http\Controllers\AdminController::class, 'sendBookingEmailAlert']);
+    Route::get('/admin/settings', [\App\Http\Controllers\AdminController::class, 'getSettings']);
+    Route::put('/admin/settings', [\App\Http\Controllers\AdminController::class, 'updateSettings']);
 });
