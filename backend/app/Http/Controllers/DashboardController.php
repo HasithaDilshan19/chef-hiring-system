@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\NewBookingChefMail;
 use App\Mail\BookingStatusUserMail;
+use Illuminate\Support\Facades\Http;
 
 class DashboardController extends Controller
 {
@@ -312,16 +313,140 @@ class DashboardController extends Controller
             return $a->distance <=> $b->distance;
         })->values();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'user_city' => $targetCity,
-                'bookings' => $bookings,
-                'recommended_chefs' => $recommendedChefs,
-                'cuisine_list' => ['Sri Lankan', 'Indian', 'Western', 'Chinese', 'Italian']
+        // -------------------------------------------------------
+// AI RECOMMENDATION
+// -------------------------------------------------------
+
+$aiRecommendations = [];
+
+try {
+
+    $aiChefs = $recommendedChefs->map(function ($chef) {
+
+        $profile = $chef->chefProfile;
+
+        return [
+
+            'id' => $chef->id,
+
+            'name' => $chef->name,
+
+            'latitude' => $profile
+                ? (float) $profile->latitude
+                : 0,
+
+            'longitude' => $profile
+                ? (float) $profile->longitude
+                : 0,
+
+            'cuisines' => $profile
+                ? ($profile->cuisine_specialities ?? [])
+                : [],
+
+            'experience' => $profile
+                ? (float) ($profile->experience_years ?? 0)
+                : 0,
+
+            'rating' => $profile
+                ? (float) ($profile->rating ?? 0)
+                : 0,
+
+            'available' => $profile
+                ? $profile->availability_status === 'available'
+                : false,
+
+            'distance' => $chef->distance ?? null,
+        ];
+
+    })->values()->toArray();
+
+
+    // Send real chef data to Python AI service
+
+    $aiResponse = Http::timeout(10)
+        ->post(
+            'http://127.0.0.1:5000/recommend',
+            [
+                'user' => [
+
+                    'latitude' => $userLat,
+
+                    'longitude' => $userLng,
+
+                    'cuisine' => $cuisine,
+                ],
+
+                'chefs' => $aiChefs,
             ]
-        ]);
+        );
+
+
+    if ($aiResponse->successful()) {
+
+        $aiData = $aiResponse->json();
+
+        if (
+            isset($aiData['success']) &&
+            $aiData['success'] === true
+        ) {
+
+            $aiRecommendations =
+                $aiData['recommendations'] ?? [];
+
+        }
+
+    } else {
+
+        Log::warning(
+            'AI recommendation service returned an error',
+            [
+                'status' => $aiResponse->status(),
+                'response' => $aiResponse->body(),
+            ]
+        );
+
     }
+
+
+} catch (\Throwable $e) {
+
+    Log::error(
+        'AI recommendation service unavailable',
+        [
+            'error' => $e->getMessage(),
+        ]
+    );
+
+        }
+
+                return response()->json([
+            'status' => 'success',
+
+            'data' => [
+
+                'user_city' => $targetCity,
+
+                'bookings' => $bookings,
+
+                // Existing nearest chefs
+                'nearby_chefs' => $recommendedChefs,
+
+                // AI ranked chefs
+                'ai_recommended_chefs' => $aiRecommendations,
+
+                'cuisine_list' => [
+                    'Sri Lankan',
+                    'Indian',
+                    'Western',
+                    'Chinese',
+                    'Italian'
+                                ]
+                ]
+                    ]);
+            }
+
+
+    
 
     /**
      * Create a new chef booking.
