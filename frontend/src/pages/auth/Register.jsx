@@ -127,7 +127,7 @@ const Register = () => {
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-4 hover:opacity-85">
             <ChefHat size={36} className="text-amber-500" />
-            <span className="text-2xl font-bold tracking-tight text-white font-sans">Rasawathee</span>
+            <span className="text-2xl font-bold tracking-tight text-white font-sans">ChefHire</span>
           </Link>
           <h2 className="text-3xl font-extrabold text-white tracking-tight">Create your account</h2>
           <p className="mt-2 text-sm text-slate-400">Join the location-aware Sri Lankan Chef Platform</p>
