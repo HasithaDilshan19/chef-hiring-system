@@ -15,7 +15,7 @@ const UserDashboard = () => {
   const [photoUploading, setPhotoUploading] = useState(false);
 
   // Location and search filters
-  const [city, setCity] = useState('Colombo');
+  const [city, setCity] = useState(user?.city || 'Colombo');
   const [selectedCuisine, setSelectedCuisine] = useState('');
   
   // Coordinates mapping for distance calculations
@@ -24,6 +24,7 @@ const UserDashboard = () => {
     Nugegoda: { lat: 6.901500, lng: 79.880000 },
     Kandy: { lat: 7.290572, lng: 80.633728 },
     Galle: { lat: 6.053519, lng: 80.220978 },
+    Negombo: { lat: 7.208300, lng: 79.835800 },
   };
 
   // Booking modal state
@@ -39,9 +40,9 @@ const UserDashboard = () => {
   const fetchUserData = async () => {
     try {
       const coords = cityCoords[city] || cityCoords.Colombo;
-      let url = `/user/stats?latitude=${coords.lat}&longitude=${coords.lng}`;
+      let url = `/user/stats?city=${encodeURIComponent(city)}&latitude=${coords.lat}&longitude=${coords.lng}`;
       if (selectedCuisine) {
-        url += `&cuisine=${selectedCuisine}`;
+        url += `&cuisine=${encodeURIComponent(selectedCuisine)}`;
       }
       
       const response = await api.get(url);
@@ -131,37 +132,44 @@ const UserDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
+    <div className="space-y-6 text-slate-100 max-w-7xl mx-auto">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 mb-8 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-800 bg-slate-900 shrink-0 flex items-center justify-center relative">
+            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-800 bg-slate-900 shrink-0 flex items-center justify-center relative">
               {photoUploading && (
                 <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-10">
-                  <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
               {user?.photo_url ? (
                 <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <UserIcon className="w-8 h-8 text-slate-500" />
+                <UserIcon className="w-7 h-7 text-slate-500" />
               )}
             </div>
-            <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-900 p-1.5 rounded-full cursor-pointer hover:bg-amber-400 transition-colors shadow-lg border border-slate-900 group-hover:scale-110">
+            <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-900 p-1 rounded-full cursor-pointer hover:bg-amber-400 transition-colors shadow-lg border border-slate-900 group-hover:scale-110">
               <Camera size={12} />
               <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={photoUploading} />
             </label>
           </div>
           <div>
-            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
-              Sri Lankan Chef Finder
-            </span>
-            <h1 className="text-3xl font-bold text-white mt-2">Welcome, {user?.name}</h1>
-            <p className="text-sm text-slate-400">Quickly find and book available chefs near your event venue.</p>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
+                Customer Dashboard
+              </span>
+              {user?.city && (
+                <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-full border border-slate-700 flex items-center gap-1">
+                  <MapPin size={12} className="text-amber-400" />
+                  {user.city}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-white mt-1">Welcome, {user?.name}</h1>
           </div>
         </div>
-      </header>
+      </div>
 
       {error && (
         <div className="p-4 mb-6 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm flex gap-2">
@@ -178,61 +186,71 @@ const UserDashboard = () => {
       )}
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Main Content: Chef Recommendation / Search */}
+        {/* Main Content: Suggested Available Chefs Near User */}
         <div className="space-y-6">
-          {/* Location-aware search filters */}
-          <div className="p-6 bg-slate-900/60 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <Compass className="text-amber-400 shrink-0" size={24} />
-              <div className="w-full">
-                <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-bold">Your Event Venue City</span>
+          {/* Top Suggested Banner */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-slate-900 border border-amber-500/30 p-6 rounded-3xl relative overflow-hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full mb-2 border border-amber-500/30">
+                  <Compass size={14} />
+                  <span>Suggested Available Chefs</span>
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  Available Chefs Near <span className="text-amber-400">{city}</span>
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                  Showing top active available chefs closest to your registered city (<strong className="text-white">{city}</strong>). Select a cuisine filter or change city to browse.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800 shrink-0">
+                <MapPin size={16} className="text-amber-400 ml-2" />
                 <select
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="bg-transparent text-white font-bold border-b border-slate-700 focus:outline-none py-1 w-full md:w-48 text-sm"
+                  className="bg-transparent text-white font-bold focus:outline-none pr-3 py-1 text-sm cursor-pointer"
                 >
-                  <option value="Colombo">Colombo (Western)</option>
-                  <option value="Nugegoda">Nugegoda (Western)</option>
-                  <option value="Kandy">Kandy (Central)</option>
-                  <option value="Galle">Galle (Southern)</option>
+                  <option value="Colombo" className="bg-slate-900 text-white">Colombo</option>
+                  <option value="Nugegoda" className="bg-slate-900 text-white">Nugegoda</option>
+                  <option value="Kandy" className="bg-slate-900 text-white">Kandy</option>
+                  <option value="Galle" className="bg-slate-900 text-white">Galle</option>
+                  <option value="Negombo" className="bg-slate-900 text-white">Negombo</option>
                 </select>
               </div>
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-1.5 w-full md:w-auto justify-start md:justify-end">
+          {/* Cuisine Filter Pills */}
+          <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-semibold text-slate-400 mr-2">Filter Speciality:</span>
+            <button
+              onClick={() => setSelectedCuisine('')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                !selectedCuisine
+                  ? 'bg-amber-500 text-slate-950 border-amber-500'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              All Specialities
+            </button>
+            {cuisines.map((cuisine) => (
               <button
-                onClick={() => setSelectedCuisine('')}
+                key={cuisine}
+                onClick={() => setSelectedCuisine(cuisine)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                  !selectedCuisine
+                  selectedCuisine === cuisine
                     ? 'bg-amber-500 text-slate-950 border-amber-500'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                All Specialities
+                {cuisine}
               </button>
-              {cuisines.map((cuisine) => (
-                <button
-                  key={cuisine}
-                  onClick={() => setSelectedCuisine(cuisine)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                    selectedCuisine === cuisine
-                      ? 'bg-amber-500 text-slate-950 border-amber-500'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {cuisine}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {/* Location-aware chef recommendation list */}
           <div>
-            <h2 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
-              <ChefHat className="text-amber-500" size={22} />
-              <span>Recommended Chefs (Sorted Closest to Venue)</span>
-            </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {recommendedChefs.map((chef) => (
                 <div key={chef.id} className="p-6 bg-slate-900/40 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-amber-500/20 hover:bg-slate-900/50 transition-all duration-300">
@@ -250,16 +268,24 @@ const UserDashboard = () => {
                         </div>
                         <div>
                           <h3 className="font-bold text-lg text-white">{chef.name}</h3>
-                          <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
-                            <MapPin size={12} className="text-amber-400" />
-                            <span>{chef.chef_profile.city} ({chef.distance} km away)</span>
+                          <p className="text-xs text-slate-300 flex items-center gap-1 mt-1 font-medium">
+                            <MapPin size={13} className="text-amber-400 shrink-0" />
+                            <span>{chef.chef_profile.city}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-amber-400/90 font-semibold">{chef.distance === 0 ? 'In Your City' : `${chef.distance} km away`}</span>
                           </p>
                         </div>
                       </div>
-                      <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-bold font-mono shrink-0">
-                        <Star size={12} fill="currentColor" />
-                        <span>{parseFloat(chef.chef_profile.rating).toFixed(1)}</span>
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-[11px] font-bold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Available Now
+                        </span>
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-xs font-bold font-mono">
+                          <Star size={12} fill="currentColor" />
+                          <span>{parseFloat(chef.chef_profile.rating).toFixed(1)}</span>
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-1 mt-4">

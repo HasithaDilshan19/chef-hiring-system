@@ -13,7 +13,12 @@ class ChefController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::where('role', 'chef')->with('chefProfile');
+        $query = User::where('role', 'chef')
+            ->where('status', 'active')
+            ->whereHas('chefProfile', function($q) {
+                $q->where('availability_status', 'available');
+            })
+            ->with('chefProfile');
 
         // Optional filtering by name
         if ($request->has('name') && !empty($request->name)) {
@@ -94,9 +99,10 @@ class ChefController extends Controller
         $validatedData = $request->validate([
             'bio' => 'nullable|string',
             'hourly_rate' => 'nullable|numeric|min:0',
+            'experience_years' => 'nullable|integer|min:0',
             'city' => 'nullable|string|max:255',
             'cuisine_specialities' => 'nullable|array',
-            'availability_status' => 'nullable|string|in:available,busy,offline',
+            'availability_status' => 'nullable|string|in:available,busy,unavailable,offline',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -115,6 +121,11 @@ class ChefController extends Controller
 
         $profile->fill(collect($validatedData)->except('photo')->toArray());
         $profile->save();
+
+        if ($request->has('city') && !empty($request->city)) {
+            $user->city = $request->city;
+            $user->save();
+        }
         
         // Format for response
         if ($profile->photo_url) {

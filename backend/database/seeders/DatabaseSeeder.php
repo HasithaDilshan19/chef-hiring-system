@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
             'role' => 'user',
             'phone' => '0755566778',
+            'city' => 'Colombo',
         ]);
 
         // 3. Seed Chef 1 (Kamal)
