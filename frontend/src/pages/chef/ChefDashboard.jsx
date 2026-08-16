@@ -70,6 +70,34 @@ const ChefDashboard = () => {
     }
   };
 
+  const handleToggleAvailability = async (newStatus) => {
+    setAvailability(newStatus);
+    setSuccessMsg('');
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('availability_status', newStatus);
+      if (experience) formData.append('experience_years', experience);
+      if (rate) formData.append('hourly_rate', rate);
+      if (city) formData.append('city', city);
+      if (bio) formData.append('bio', bio);
+      formData.append('_method', 'PUT');
+
+      const response = await api.post('/chef/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.status === 'success') {
+        setSuccessMsg(`Availability status updated to "${newStatus.toUpperCase()}"!`);
+        fetchChefStats();
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to update availability status.');
+    }
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setUpdating(true);
@@ -94,21 +122,21 @@ const ChefDashboard = () => {
       
       formData.append('_method', 'PUT');
 
-      await api.post('/chef/profile', formData, {
+      const response = await api.post('/chef/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      setSuccessMsg('Your chef profile has been updated successfully!');
-      fetchChefStats();
+      if (response.data.status === 'success') {
+        setSuccessMsg('Your chef profile has been updated successfully!');
+        fetchChefStats();
+      }
     } catch (err) {
       console.error(err);
-      setError('Failed to update profile.');
+      setError(err.response?.data?.message || 'Failed to update profile.');
     } finally {
       setUpdating(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -135,11 +163,23 @@ const ChefDashboard = () => {
             )}
           </div>
           <div>
-            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
-              Professional Chef Workspace
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
+                Professional Chef Workspace
+              </span>
+              <span className={`px-3 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5 ${
+                availability === 'available'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : availability === 'busy'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${availability === 'available' ? 'bg-emerald-400 animate-pulse' : 'bg-current'}`}></span>
+                <span className="capitalize">{availability}</span>
+              </span>
+            </div>
             <h1 className="text-3xl font-bold text-white mt-2">{user?.name}</h1>
-            <p className="text-sm text-slate-400">Manage your profile, availability, and event gigs.</p>
+            <p className="text-sm text-slate-400">Manage your profile, availability status, and event gigs.</p>
           </div>
         </div>
       </header>
@@ -232,23 +272,25 @@ const ChefDashboard = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Availability Status
+                Availability Status (Click to Change)
               </label>
               <div className="flex p-1 bg-slate-950 border border-slate-800 rounded-xl">
                 {['available', 'busy', 'unavailable'].map((statusOption) => (
                   <button
                     key={statusOption}
                     type="button"
-                    onClick={() => setAvailability(statusOption)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg cursor-pointer capitalize transition-all ${
+                    onClick={() => handleToggleAvailability(statusOption)}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-lg cursor-pointer capitalize transition-all ${
                       availability === statusOption
                         ? statusOption === 'available'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                        : 'text-slate-500 hover:text-slate-300'
+                          ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                          : statusOption === 'busy'
+                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                     }`}
                   >
-                    {statusOption}
+                    {statusOption === 'available' ? 'Available (Active)' : statusOption === 'busy' ? 'Busy' : 'Unavailable'}
                   </button>
                 ))}
               </div>

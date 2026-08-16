@@ -148,7 +148,7 @@ class DashboardController extends Controller
             'hourly_rate' => 'required|numeric|min:0',
             'city' => 'required|string|max:100',
             'bio' => 'nullable|string',
-            'availability_status' => 'required|string|in:available,busy,unavailable',
+            'availability_status' => 'required|string|in:available,busy,unavailable,offline',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
@@ -225,13 +225,25 @@ class DashboardController extends Controller
 
         $bookings = Booking::where('customer_id', $user->id)->with(['chef.chefProfile'])->latest()->get();
 
-        // Recommend chefs based on location
-        // Default customer location if not provided is Colombo
-        $userLat = $request->query('latitude', 6.927179);
-        $userLng = $request->query('longitude', 79.861244);
+        // City coordinates map
+        $cityCoordinates = [
+            'Colombo' => ['lat' => 6.927179, 'lng' => 79.861244],
+            'Nugegoda' => ['lat' => 6.901500, 'lng' => 79.880000],
+            'Kandy' => ['lat' => 7.290572, 'lng' => 80.633728],
+            'Galle' => ['lat' => 6.053519, 'lng' => 80.220978],
+            'Negombo' => ['lat' => 7.208300, 'lng' => 79.835800],
+        ];
+
+        // User city: prioritize request query city, then user profile city, default Colombo
+        $targetCity = $request->query('city') ?: ($user->city ?: 'Colombo');
+        $defaultCoords = $cityCoordinates[$targetCity] ?? ['lat' => 6.927179, 'lng' => 79.861244];
+
+        $userLat = (float) $request->query('latitude', $defaultCoords['lat']);
+        $userLng = (float) $request->query('longitude', $defaultCoords['lng']);
         $cuisine = $request->query('cuisine');
 
         $chefsQuery = User::where('role', 'chef')
+            ->where('status', 'active')
             ->whereHas('chefProfile', function($q) {
                 $q->where('availability_status', 'available');
             })
@@ -250,13 +262,18 @@ class DashboardController extends Controller
                 $chef->photo_url = url($chef->photo_url);
             }
             
-            // Haversine formula
-            $theta = $userLng - $profile->longitude;
-            $dist = sin(deg2rad($userLat)) * sin(deg2rad($profile->latitude)) +  cos(deg2rad($userLat)) * cos(deg2rad($profile->latitude)) * cos(deg2rad($theta));
-            $dist = acos($dist);
+            $chefLat = $profile ? (float)$profile->latitude : $userLat;
+            $chefLng = $profile ? (float)$profile->longitude : $userLng;
+
+            // Haversine formula safely
+            $lat1 = deg2rad($userLat);
+            $lat2 = deg2rad($chefLat);
+            $theta = deg2rad($userLng - $chefLng);
+            $dist = sin($lat1) * sin($lat2) + cos($lat1) * cos($lat2) * cos($theta);
+            $dist = acos(min(max($dist, -1.0), 1.0));
             $dist = rad2deg($dist);
             $miles = $dist * 60 * 1.1515;
-            $distanceKm = $miles * 1.609344; // in kilometers
+            $distanceKm = $miles * 1.609344;
 
             $chef->distance = round($distanceKm, 2);
             return $chef;
@@ -270,12 +287,22 @@ class DashboardController extends Controller
             });
         }
 
-        // Sort by distance (ascending)
-        $recommendedChefs = $recommendedChefs->sortBy('distance')->values();
+        // Sort: chefs in exact same city first, then by distance
+        $recommendedChefs = $recommendedChefs->sort(function($a, $b) use ($targetCity) {
+            $aSameCity = (strcasecmp($a->chefProfile->city ?? '', $targetCity) === 0) ? 0 : 1;
+            $bSameCity = (strcasecmp($b->chefProfile->city ?? '', $targetCity) === 0) ? 0 : 1;
+
+            if ($aSameCity !== $bSameCity) {
+                return $aSameCity <=> $bSameCity;
+            }
+
+            return $a->distance <=> $b->distance;
+        })->values();
 
         return response()->json([
             'status' => 'success',
             'data' => [
+                'user_city' => $targetCity,
                 'bookings' => $bookings,
                 'recommended_chefs' => $recommendedChefs,
                 'cuisine_list' => ['Sri Lankan', 'Indian', 'Western', 'Chinese', 'Italian']

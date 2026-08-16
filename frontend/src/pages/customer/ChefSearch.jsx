@@ -134,9 +134,15 @@ export default function ChefSearch() {
 
               <div className="px-6 pb-6 pt-10 mt-2">
                 <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">{chef.name}</h3>
-                <div className="flex items-center gap-1.5 text-sm text-slate-400 mt-2">
-                  <MapPin className="h-4 w-4 text-amber-500" />
-                  {chef.chef_profile?.city || 'Location not specified'}
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <div className="flex items-center gap-1.5 text-sm text-slate-400">
+                    <MapPin className="h-4 w-4 text-amber-500 shrink-0" />
+                    {chef.chef_profile?.city || 'Location not specified'}
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Available
+                  </span>
                 </div>
                 
                 <div className="flex items-center gap-2 mt-4 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">

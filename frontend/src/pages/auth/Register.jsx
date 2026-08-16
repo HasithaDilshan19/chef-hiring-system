@@ -75,6 +75,7 @@ const Register = () => {
       name,
       email,
       phone,
+      city,
       password,
       password_confirmation: passwordConfirmation,
       role,
