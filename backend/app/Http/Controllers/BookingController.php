@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\NewBookingChefMail;
+use App\Mail\BookingStatusUserMail;
 
 class BookingController extends Controller
 {
@@ -39,6 +43,17 @@ class BookingController extends Controller
         $booking->customer_id = $user->id;
         $booking->status = 'pending';
         $booking->save();
+
+        $booking->load(['customer', 'chef']);
+
+        // Send automatic email notification to the chef
+        try {
+            if ($booking->chef && $booking->chef->email) {
+                Mail::to($booking->chef->email)->send(new NewBookingChefMail($booking));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed sending new booking email to chef: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',
@@ -116,6 +131,17 @@ class BookingController extends Controller
 
         $booking->status = $validatedData['status'];
         $booking->save();
+
+        $booking->load(['customer', 'chef']);
+
+        // Send automatic email notification to customer on status change
+        try {
+            if ($booking->customer && $booking->customer->email) {
+                Mail::to($booking->customer->email)->send(new BookingStatusUserMail($booking));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed sending booking status update email to user: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',

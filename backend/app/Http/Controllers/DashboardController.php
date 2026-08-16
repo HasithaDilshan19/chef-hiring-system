@@ -7,6 +7,10 @@ use App\Models\ChefProfile;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\NewBookingChefMail;
+use App\Mail\BookingStatusUserMail;
 
 class DashboardController extends Controller
 {
@@ -202,8 +206,17 @@ class DashboardController extends Controller
         $booking->status = $request->status;
         $booking->save();
 
-        // If a chef cancels a booking, we simulate the alternative chef suggestion.
-        // In the real system, when a cancellation occurs, we could raise a flag or notify.
+        $booking->load(['customer', 'chef']);
+
+        // Send automatic email notification to customer on status change
+        try {
+            if ($booking->customer && $booking->customer->email) {
+                Mail::to($booking->customer->email)->send(new BookingStatusUserMail($booking));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed sending booking status update email to user: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Booking status updated to ' . $request->status,
@@ -354,6 +367,17 @@ class DashboardController extends Controller
             'status' => 'pending',
             'total_price' => $request->total_price,
         ]);
+
+        $booking->load(['customer', 'chef']);
+
+        // Send automatic email notification to the chef
+        try {
+            if ($booking->chef && $booking->chef->email) {
+                Mail::to($booking->chef->email)->send(new NewBookingChefMail($booking));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed sending new booking email to chef: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',
