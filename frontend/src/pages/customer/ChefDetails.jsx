@@ -1,6 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, ChefHat, Star, Clock, Calendar, Users, DollarSign } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
+import {
+  MapPin,
+  Star,
+  Clock,
+  Calendar,
+  Users,
+  DollarSign,
+  MessageSquare,
+  X,
+  Send,
+  User,
+  CheckCircle,
+  Edit,
+  Trash2,
+} from 'lucide-react';
+
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,62 +24,1005 @@ export default function ChefDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // =========================================================
+  // CHEF
+  // =========================================================
+
   const [chef, setChef] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // =========================================================
+  // REVIEWS
+  // =========================================================
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  // =========================================================
+  // REVIEW MODAL (Add/Edit)
+  // =========================================================
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null);
+
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    comment: '',
+  });
+
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+
+  // =========================================================
+  // DELETE REVIEW
+  // =========================================================
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReviewId, setDeleteReviewId] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // =========================================================
+  // BOOKING
+  // =========================================================
+
   const [showBookingModal, setShowBookingModal] = useState(false);
-  
+
   const [bookingForm, setBookingForm] = useState({
     event_date: '',
     event_time: '',
     event_type: '',
     location: '',
-    guests_count: 1
+    guests_count: 1,
   });
+
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
+  // =========================================================
+  // GET CHEF PROFILE
+  // =========================================================
+
+  const getChefProfile = (chefData) => {
+    return (
+      chefData?.chef_profile ||
+      chefData?.chefProfile ||
+      chefData?.profile ||
+      {}
+    );
+  };
+
+  // =========================================================
+  // NORMALIZE REVIEW
+  // =========================================================
+
+  const normalizeReview = (review) => {
+    if (!review || typeof review !== 'object') {
+      return null;
+    }
+
+    const rating = Number(
+      review.rating ??
+      review.stars ??
+      review.rating_value ??
+      review.review_rating ??
+      0
+    );
+
+    const comment =
+      review.comment ??
+      review.review ??
+      review.message ??
+      review.content ??
+      '';
+
+    const userObject =
+      review.user ??
+      review.customer ??
+      review.reviewer ??
+      review.user_data ??
+      null;
+
+    let userId = null;
+    
+    if (userObject && typeof userObject === 'object') {
+      userId = userObject.id ?? userObject.user_id ?? userObject.customer_id ?? null;
+    }
+    
+    if (!userId) {
+      userId = 
+        review.user_id ??
+        review.customer_id ??
+        review.reviewer_id ??
+        null;
+    }
+
+    let userName = '';
+    
+    if (userObject && typeof userObject === 'object') {
+      userName = 
+        userObject.name ??
+        userObject.full_name ??
+        userObject.username ??
+        '';
+    }
+    
+    if (!userName) {
+      userName =
+        review.user_name ??
+        review.customer_name ??
+        review.reviewer_name ??
+        '';
+    }
+
+    let userPhoto = null;
+    
+    if (userObject && typeof userObject === 'object') {
+      userPhoto =
+        userObject.photo_url ??
+        userObject.photo ??
+        userObject.profile_photo ??
+        userObject.avatar ??
+        null;
+    }
+    
+    if (!userPhoto) {
+      userPhoto =
+        review.user_photo ??
+        review.customer_photo ??
+        review.reviewer_photo ??
+        null;
+    }
+
+    return {
+      ...review,
+      id: review.id ?? null,
+      rating: rating,
+      comment: String(comment || ''),
+      user_id: userId,
+      customer_id: userId,
+      
+      user: userObject && typeof userObject === 'object'
+        ? {
+            ...userObject,
+            id: userObject.id ?? userId,
+            name: userName || 'Customer',
+            photo_url: userPhoto,
+          }
+        : userName
+        ? {
+            id: userId,
+            name: userName,
+            photo_url: userPhoto,
+          }
+        : null,
+      
+      customer: userObject && typeof userObject === 'object'
+        ? {
+            ...userObject,
+            id: userObject.id ?? userId,
+            name: userName || 'Customer',
+            photo_url: userPhoto,
+          }
+        : userName
+        ? {
+            id: userId,
+            name: userName,
+            photo_url: userPhoto,
+          }
+        : null,
+      
+      created_at:
+        review.created_at ??
+        review.createdAt ??
+        review.date ??
+        null,
+    };
+  };
+
+  // =========================================================
+  // NORMALIZE REVIEWS
+  // =========================================================
+
+  const normalizeReviews = (data) => {
+    if (!data) {
+      return [];
+    }
+
+    if (Array.isArray(data)) {
+      return data
+        .map(item => {
+          if (item && typeof item === 'object' && !item.data) {
+            return normalizeReview(item);
+          }
+          if (item && typeof item === 'object' && item.data) {
+            return normalizeReview(item.data);
+          }
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    if (typeof data === 'object') {
+      if (Array.isArray(data.data)) {
+        return data.data
+          .map(item => {
+            if (item && typeof item === 'object') {
+              return normalizeReview(item);
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      if (Array.isArray(data.reviews)) {
+        return data.reviews
+          .map(item => {
+            if (item && typeof item === 'object') {
+              return normalizeReview(item);
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      if (data.data && typeof data.data === 'object' && Array.isArray(data.data.reviews)) {
+        return data.data.reviews
+          .map(item => {
+            if (item && typeof item === 'object') {
+              return normalizeReview(item);
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      if (data.chef && typeof data.chef === 'object' && Array.isArray(data.chef.reviews)) {
+        return data.chef.reviews
+          .map(item => {
+            if (item && typeof item === 'object') {
+              return normalizeReview(item);
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      if (data.data && typeof data.data === 'object' && 
+          data.data.chef && typeof data.data.chef === 'object' &&
+          Array.isArray(data.data.chef.reviews)) {
+        return data.data.chef.reviews
+          .map(item => {
+            if (item && typeof item === 'object') {
+              return normalizeReview(item);
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+    }
+
+    return [];
+  };
+
+  // =========================================================
+  // CALCULATE RATING
+  // =========================================================
+
+  const calculateRatingFromReviews = (reviewList) => {
+    if (!Array.isArray(reviewList) || reviewList.length === 0) {
+      return 0;
+    }
+
+    const ratings = reviewList
+      .map((review) => Number(review?.rating || 0))
+      .filter((rating) => rating >= 1 && rating <= 5);
+
+    if (ratings.length === 0) {
+      return 0;
+    }
+
+    const total = ratings.reduce((sum, rating) => sum + rating, 0);
+    return total / ratings.length;
+  };
+
+  // =========================================================
+  // GET BACKEND RATING
+  // =========================================================
+
+  const getBackendRating = (data) => {
+    const possibleRatings = [
+      data?.average_rating,
+      data?.avg_rating,
+      data?.rating,
+      data?.chef?.average_rating,
+      data?.chef?.avg_rating,
+      data?.chef?.rating,
+      data?.chef_profile?.average_rating,
+      data?.chef_profile?.avg_rating,
+      data?.chef_profile?.rating,
+      data?.data?.average_rating,
+      data?.data?.avg_rating,
+      data?.data?.rating,
+      data?.data?.chef?.average_rating,
+      data?.data?.chef?.avg_rating,
+      data?.data?.chef?.rating,
+    ];
+
+    for (const value of possibleRatings) {
+      const number = Number(value);
+      if (value !== undefined && value !== null && value !== '' && !Number.isNaN(number) && number >= 0 && number <= 5) {
+        return number;
+      }
+    }
+
+    return 0;
+  };
+
+  // =========================================================
+  // GET BACKEND REVIEW COUNT
+  // =========================================================
+
+  const getBackendReviewCount = (data) => {
+    const possibleCounts = [
+      data?.review_count,
+      data?.reviews_count,
+      data?.total_reviews,
+      data?.chef?.review_count,
+      data?.chef?.reviews_count,
+      data?.chef?.total_reviews,
+      data?.data?.review_count,
+      data?.data?.reviews_count,
+      data?.data?.total_reviews,
+      data?.data?.chef?.review_count,
+      data?.data?.chef?.reviews_count,
+      data?.data?.chef?.total_reviews,
+    ];
+
+    for (const value of possibleCounts) {
+      const number = Number(value);
+      if (value !== undefined && value !== null && value !== '' && !Number.isNaN(number) && number >= 0) {
+        return number;
+      }
+    }
+
+    return 0;
+  };
+
+  // =========================================================
+  // UPDATE RATING FROM REVIEWS
+  // =========================================================
+
+  const updateRatingFromReviews = (reviewList, responseData = null) => {
+    const backendRating = getBackendRating(responseData);
+    const calculatedRating = calculateRatingFromReviews(reviewList);
+    const finalRating = calculatedRating > 0 ? calculatedRating : backendRating;
+
+    const backendCount = getBackendReviewCount(responseData);
+    const finalCount = reviewList.length > 0 ? reviewList.length : backendCount;
+
+    setAverageRating(finalRating);
+    setReviewCount(finalCount);
+
+    console.log('Updated rating:', finalRating);
+    console.log('Updated review count:', finalCount);
+    console.log('Total reviews in list:', reviewList.length);
+  };
+
+  // =========================================================
+  // APPLY CHEF RESPONSE
+  // =========================================================
+
+  const applyChefResponse = (responseData, existingReviews = null) => {
+    const chefData = 
+      responseData?.chef ??
+      responseData?.data?.chef ??
+      responseData?.data ??
+      responseData ??
+      null;
+
+    let reviewData = [];
+
+    if (Array.isArray(existingReviews) && existingReviews.length > 0) {
+      reviewData = existingReviews;
+    } else {
+      if (Array.isArray(responseData?.reviews)) {
+        reviewData = normalizeReviews(responseData.reviews);
+      }
+      
+      if (reviewData.length === 0) {
+        reviewData = normalizeReviews(responseData);
+      }
+      
+      if (reviewData.length === 0 && chefData) {
+        reviewData = normalizeReviews(chefData);
+      }
+    }
+
+    console.log('====================================');
+    console.log('FULL RESPONSE:', responseData);
+    console.log('CHEF DATA:', chefData);
+    console.log('REVIEWS FOUND:', reviewData);
+    console.log('TOTAL REVIEWS:', reviewData.length);
+    console.log('====================================');
+
+    setChef(chefData);
+    setReviews(reviewData);
+    updateRatingFromReviews(reviewData, responseData);
+  };
+
+  // =========================================================
+  // FETCH SEPARATE REVIEWS
+  // =========================================================
+
+  const fetchReviews = async () => {
+    if (!id) {
+      console.log('No chef ID available');
+      return;
+    }
+
+    try {
+      console.log('Fetching reviews from:', `/chef-reviews/${id}`);
+      
+      const response = await api.get(`/chef-reviews/${id}`);
+      
+      console.log('REVIEWS API RESPONSE:', response.data);
+      
+      let reviewData = [];
+      
+      if (response.data?.reviews && Array.isArray(response.data.reviews)) {
+        reviewData = normalizeReviews(response.data.reviews);
+      } else {
+        reviewData = normalizeReviews(response.data);
+      }
+      
+      console.log('FINAL REVIEW DATA:', reviewData);
+      console.log('TOTAL REVIEWS FROM API:', reviewData.length);
+      
+      if (reviewData.length > 0) {
+        setReviews(reviewData);
+        updateRatingFromReviews(reviewData, response.data);
+      } else {
+        const chefResponse = await api.get(`/chefs/${id}`);
+        const chefReviewData = normalizeReviews(chefResponse.data);
+        
+        if (chefReviewData.length > 0) {
+          setReviews(chefReviewData);
+          updateRatingFromReviews(chefReviewData, chefResponse.data);
+        } else {
+          setReviews([]);
+          
+          const backendRating = getBackendRating(response.data);
+          const backendCount = getBackendReviewCount(response.data);
+          
+          setAverageRating(backendRating);
+          setReviewCount(backendCount);
+        }
+      }
+    } catch (err) {
+      console.warn('Reviews endpoint failed:', err.response?.status, err.response?.data || err.message);
+      
+      try {
+        const chefResponse = await api.get(`/chefs/${id}`);
+        const chefReviewData = normalizeReviews(chefResponse.data);
+        
+        if (chefReviewData.length > 0) {
+          setReviews(chefReviewData);
+          updateRatingFromReviews(chefReviewData, chefResponse.data);
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback chef endpoint also failed:', fallbackErr.message);
+      }
+    }
+  };
+
+  // =========================================================
+  // FETCH CHEF DETAILS
+  // =========================================================
+
   useEffect(() => {
+    if (!id) {
+      setError('Chef ID is missing.');
+      setLoading(false);
+      setReviewsLoading(false);
+      return;
+    }
+
     fetchChefDetails();
   }, [id]);
 
   const fetchChefDetails = async () => {
     try {
+      setLoading(true);
+      setReviewsLoading(true);
+      setError('');
+
       const response = await api.get(`/chefs/${id}`);
-      if (response.data.status === 'success') {
-        setChef(response.data.chef);
+      
+      console.log('CHEF DETAILS API RESPONSE:', response.data);
+
+      if (response.data?.status === 'success' || response.data) {
+        applyChefResponse(response.data);
+        await fetchReviews();
+      } else {
+        setChef(null);
+        setReviews([]);
+        setAverageRating(0);
+        setReviewCount(0);
+        setError(response.data?.message || 'Failed to load chef details.');
       }
-    } catch (error) {
-      console.error('Error fetching chef details:', error);
+    } catch (err) {
+      console.error('Error fetching chef details:', err);
+      setChef(null);
+      setReviews([]);
+      setAverageRating(0);
+      setReviewCount(0);
+      setError(err.response?.data?.message || 'Failed to load chef details.');
     } finally {
       setLoading(false);
+      setReviewsLoading(false);
     }
   };
 
-  const handleBookingSubmit = async (e) => {
+  // =========================================================
+  // REFRESH REVIEWS
+  // =========================================================
+
+  const refreshReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      await fetchReviews();
+    } catch (err) {
+      console.error('Error refreshing reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // =========================================================
+  // STAR DISPLAY
+  // =========================================================
+
+  const renderStars = (rating, size = 18) => {
+    const numericRating = Number(rating || 0);
+
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={size}
+            className={
+              star <= Math.round(numericRating)
+                ? 'text-amber-400 fill-amber-400'
+                : 'text-gray-300'
+            }
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // =========================================================
+  // RATING SELECT
+  // =========================================================
+
+  const handleRatingSelect = (rating) => {
+    setReviewForm((previous) => ({
+      ...previous,
+      rating,
+    }));
+    setReviewError('');
+  };
+
+  // =========================================================
+  // OPEN REVIEW MODAL (Add)
+  // =========================================================
+
+  const handleOpenReviewModal = () => {
+    setIsEditing(false);
+    setEditingReviewId(null);
+    setReviewError('');
+    setReviewSuccess('');
+    setReviewForm({
+      rating: 0,
+      comment: '',
+    });
+    setShowReviewModal(true);
+  };
+
+  // =========================================================
+  // OPEN EDIT REVIEW MODAL
+  // =========================================================
+
+  const handleEditReview = (review) => {
+    setIsEditing(true);
+    setEditingReviewId(review.id);
+    setReviewError('');
+    setReviewSuccess('');
+    setReviewForm({
+      rating: review.rating || 0,
+      comment: review.comment || '',
+    });
+    setShowReviewModal(true);
+  };
+
+  // =========================================================
+  // CLOSE REVIEW MODAL
+  // =========================================================
+
+  const handleCloseReviewModal = () => {
+    if (reviewLoading) {
+      return;
+    }
+    setShowReviewModal(false);
+    setIsEditing(false);
+    setEditingReviewId(null);
+    setReviewForm({
+      rating: 0,
+      comment: '',
+    });
+    setReviewError('');
+    setReviewSuccess('');
+  };
+
+  // =========================================================
+  // SUBMIT REVIEW (Add/Update)
+  // =========================================================
+
+  const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    setBookingLoading(true);
-    setBookingError('');
+
+    setReviewError('');
+    setReviewSuccess('');
+
+    if (!user) {
+      setReviewError('Please login to submit a review.');
+      return;
+    }
+
+    if (!reviewForm.rating || Number(reviewForm.rating) < 1 || Number(reviewForm.rating) > 5) {
+      setReviewError('Please select a rating from 1 to 5 stars.');
+      return;
+    }
+
+    if (!chef?.id) {
+      setReviewError('Chef information is missing.');
+      return;
+    }
+
+    setReviewLoading(true);
 
     try {
       const payload = {
-        chef_id: chef.id,
-        ...bookingForm
+        rating: Number(reviewForm.rating),
+        comment: reviewForm.comment.trim(),
       };
-      
-      const response = await api.post('/bookings', payload);
-      
-      if (response.data.status === 'success') {
-        setShowBookingModal(false);
-        alert('Booking requested successfully!');
-        navigate('/dashboard'); // redirect customer to dashboard to see their bookings
+
+      let response;
+
+      if (isEditing && editingReviewId) {
+        // ✅ UPDATE REVIEW
+        console.log('UPDATING REVIEW:', payload);
+        response = await api.put(`/chef-reviews/${editingReviewId}`, payload);
+      } else {
+        // ✅ ADD NEW REVIEW
+        console.log('SUBMITTING REVIEW:', payload);
+        response = await api.post(`/chefs/${chef.id}/reviews`, payload);
       }
-    } catch (error) {
-      console.error('Booking error:', error);
-      setBookingError(error.response?.data?.message || 'Failed to submit booking');
+
+      console.log('REVIEW RESPONSE:', response.data);
+
+      if (response.data?.status === 'success') {
+        let updatedReview = response.data?.review ?? null;
+
+        if (updatedReview && typeof updatedReview === 'object' && !Array.isArray(updatedReview)) {
+          updatedReview = normalizeReview(updatedReview);
+        }
+
+        if (!updatedReview) {
+          updatedReview = normalizeReview({
+            id: isEditing ? editingReviewId : `temp-${Date.now()}`,
+            rating: Number(reviewForm.rating),
+            comment: reviewForm.comment.trim(),
+            user_id: user?.id,
+            customer_id: user?.id,
+            user: user,
+            customer: user,
+            created_at: new Date().toISOString(),
+          });
+        }
+
+        // Update reviews list
+        setReviews((previousReviews) => {
+          let updatedReviews;
+
+          if (isEditing) {
+            // Replace the edited review
+            updatedReviews = previousReviews.map((review) => 
+              review.id === editingReviewId ? updatedReview : review
+            );
+          } else {
+            // Add new review
+            const exists = previousReviews.some((review) => {
+              if (updatedReview?.id && review?.id) {
+                return String(review.id) === String(updatedReview.id);
+              }
+              return false;
+            });
+
+            if (exists) {
+              return previousReviews;
+            }
+
+            updatedReviews = [updatedReview, ...previousReviews];
+          }
+
+          // Update rating and count
+          const newRating = calculateRatingFromReviews(updatedReviews);
+          setAverageRating(newRating);
+          setReviewCount(updatedReviews.length);
+
+          return updatedReviews;
+        });
+
+        setReviewSuccess(
+          isEditing 
+            ? 'Your review has been updated successfully!' 
+            : 'Your review has been submitted successfully!'
+        );
+
+        setTimeout(async () => {
+          await refreshReviews();
+        }, 500);
+
+        setTimeout(() => {
+          setShowReviewModal(false);
+          setIsEditing(false);
+          setEditingReviewId(null);
+          setReviewForm({
+            rating: 0,
+            comment: '',
+          });
+          setReviewSuccess('');
+        }, 800);
+      } else {
+        setReviewError(response.data?.message || 'Failed to submit review.');
+      }
+    } catch (err) {
+      console.error('REVIEW SUBMISSION ERROR:', err);
+
+      const status = err.response?.status;
+      const responseData = err.response?.data;
+
+      if (status === 422) {
+        const errors = responseData?.errors;
+        if (errors) {
+          const firstError = Object.values(errors)[0];
+          setReviewError(Array.isArray(firstError) ? firstError[0] : String(firstError));
+        } else {
+          setReviewError(responseData?.message || 'Please check your review details.');
+        }
+      } else if (status === 401) {
+        setReviewError('Please login to submit a review.');
+      } else if (status === 403) {
+        setReviewError(responseData?.message || 'You are not allowed to submit a review.');
+      } else if (status === 404) {
+        setReviewError('Review endpoint was not found.');
+      } else if (status === 409) {
+        setReviewError(responseData?.message || 'You have already reviewed this chef.');
+      } else {
+        setReviewError(responseData?.message || 'Failed to submit review. Please try again.');
+      }
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  // =========================================================
+  // OPEN DELETE MODAL
+  // =========================================================
+
+  const handleDeleteClick = (reviewId) => {
+    setDeleteReviewId(reviewId);
+    setShowDeleteModal(true);
+  };
+
+  // =========================================================
+  // CONFIRM DELETE REVIEW
+  // =========================================================
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteReviewId) return;
+
+    setDeleteLoading(true);
+
+    try {
+      console.log('DELETING REVIEW:', deleteReviewId);
+      
+      const response = await api.delete(`/chef-reviews/${deleteReviewId}`);
+      
+      console.log('DELETE RESPONSE:', response.data);
+
+      if (response.data?.status === 'success') {
+        // Remove review from list
+        setReviews((previousReviews) => {
+          const updatedReviews = previousReviews.filter(
+            (review) => review.id !== deleteReviewId
+          );
+          
+          // Update rating and count
+          const newRating = calculateRatingFromReviews(updatedReviews);
+          setAverageRating(newRating);
+          setReviewCount(updatedReviews.length);
+
+          return updatedReviews;
+        });
+
+        setShowDeleteModal(false);
+        setDeleteReviewId(null);
+
+        // Refresh from backend
+        setTimeout(async () => {
+          await refreshReviews();
+        }, 500);
+      } else {
+        setReviewError(response.data?.message || 'Failed to delete review.');
+      }
+    } catch (err) {
+      console.error('DELETE REVIEW ERROR:', err);
+
+      const status = err.response?.status;
+      const responseData = err.response?.data;
+
+      if (status === 401) {
+        alert('Please login to delete a review.');
+      } else if (status === 403) {
+        alert(responseData?.message || 'You are not allowed to delete this review.');
+      } else if (status === 404) {
+        alert('Review not found.');
+      } else {
+        alert(responseData?.message || 'Failed to delete review. Please try again.');
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // =========================================================
+  // CLOSE DELETE MODAL
+  // =========================================================
+
+  const handleDeleteClose = () => {
+    if (deleteLoading) return;
+    setShowDeleteModal(false);
+    setDeleteReviewId(null);
+  };
+
+  // =========================================================
+  // BOOKING SUBMIT
+  // =========================================================
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+
+    setBookingLoading(true);
+    setBookingError('');
+
+    if (!user) {
+      setBookingError('Please login to make a booking.');
+      setBookingLoading(false);
+      return;
+    }
+
+    if (!chef?.id) {
+      setBookingError('Chef information is missing.');
+      setBookingLoading(false);
+      return;
+    }
+
+    try {
+      const payload = {
+        chef_id: Number(chef.id),
+        event_date: bookingForm.event_date,
+        event_time: bookingForm.event_time,
+        event_type: bookingForm.event_type,
+        location: bookingForm.location,
+        guests_count: Number(bookingForm.guests_count),
+      };
+
+      console.log('BOOKING PAYLOAD:', payload);
+
+      const response = await api.post('/bookings', payload);
+
+      console.log('BOOKING RESPONSE:', response.data);
+
+      if (response.data?.status === 'success') {
+        setShowBookingModal(false);
+        setBookingForm({
+          event_date: '',
+          event_time: '',
+          event_type: '',
+          location: '',
+          guests_count: 1,
+        });
+        setBookingError('');
+        alert('Booking requested successfully!');
+        navigate('/dashboard');
+      } else {
+        setBookingError(response.data?.message || 'Failed to submit booking.');
+      }
+    } catch (err) {
+      console.error('BOOKING ERROR:', err);
+
+      const status = err.response?.status;
+
+      if (status === 422) {
+        const errors = err.response?.data?.errors;
+        if (errors) {
+          const firstError = Object.values(errors)[0];
+          setBookingError(Array.isArray(firstError) ? firstError[0] : String(firstError));
+        } else {
+          setBookingError(err.response?.data?.message || 'Please check your booking details.');
+        }
+      } else if (status === 401) {
+        setBookingError('Please login to make a booking.');
+      } else {
+        setBookingError(err.response?.data?.message || 'Failed to submit booking.');
+      }
     } finally {
       setBookingLoading(false);
     }
   };
+
+  // =========================================================
+  // CHECK USER REVIEW
+  // =========================================================
+
+  const hasUserReviewed = reviews.some((review) => {
+    if (!user?.id) {
+      return false;
+    }
+
+    const reviewUserId = 
+      review?.user_id ??
+      review?.customer_id ??
+      review?.user?.id ??
+      review?.customer?.id ??
+      null;
+
+    if (!reviewUserId) {
+      return false;
+    }
+
+    return Number(reviewUserId) === Number(user.id);
+  });
+
+  // Get user's review
+  const getUserReview = reviews.find((review) => {
+    if (!user?.id) return false;
+
+    const reviewUserId = 
+      review?.user_id ??
+      review?.customer_id ??
+      review?.user?.id ??
+      review?.customer?.id ??
+      null;
+
+    if (!reviewUserId) return false;
+
+    return Number(reviewUserId) === Number(user.id);
+  });
+
+  // =========================================================
+  // LOADING
+  // =========================================================
 
   if (loading) {
     return (
@@ -73,77 +1032,343 @@ export default function ChefDetails() {
     );
   }
 
-  if (!chef) {
-    return <div className="text-center py-20 text-gray-500">Chef not found</div>;
+  // =========================================================
+  // ERROR
+  // =========================================================
+
+  if (error && !chef) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-20 text-center">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-6">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchChefDetails}
+            className="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
+
+  // =========================================================
+  // CHEF NOT FOUND
+  // =========================================================
+
+  if (!chef) {
+    return (
+      <div className="text-center py-20 text-gray-500">
+        Chef not found
+      </div>
+    );
+  }
+
+  // =========================================================
+  // CHEF PROFILE
+  // =========================================================
+
+  const chefProfile = getChefProfile(chef);
+
+  const chefName = chef.name || chefProfile.name || 'Chef';
+  const chefCity = chefProfile.city || chef.city || 'Location not specified';
+  const chefPhoto = chefProfile.photo_url || chef.photo_url || chefProfile.photo || chef.photo || null;
+  const experienceYears = chefProfile.experience_years ?? chefProfile.experience ?? 0;
+  const hourlyRate = chefProfile.hourly_rate ?? chefProfile.hourlyRate ?? 0;
+  const bio = chefProfile.bio || 'This chef has not provided a bio yet.';
+
+  const cuisineSpecialities = Array.isArray(chefProfile.cuisine_specialities)
+    ? chefProfile.cuisine_specialities
+    : Array.isArray(chefProfile.cuisine_specialties)
+    ? chefProfile.cuisine_specialties
+    : [];
+
+  const roundedAverageRating = Math.round(Number(averageRating || 0) * 10) / 10;
+
+  // =========================================================
+  // MAIN UI
+  // =========================================================
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      {/* CHEF HEADER */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+
         <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-700 relative"></div>
+
         <div className="px-8 pb-8 relative">
+
           <div className="flex justify-between items-end -mt-16 mb-6">
+
+            {/* CHEF IMAGE */}
             <div className="w-32 h-32 bg-white rounded-full p-1 shadow-md border border-gray-100 relative z-10 overflow-hidden">
-              {(chef.chef_profile?.photo_url || chef.photo_url) ? (
-                <img src={chef.chef_profile?.photo_url || chef.photo_url} alt={chef.name} className="w-full h-full rounded-full object-cover" />
+              {chefPhoto ? (
+                <img
+                  src={chefPhoto}
+                  alt={chefName}
+                  className="w-full h-full rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
               ) : (
                 <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl font-bold">
-                  {chef.name.charAt(0)}
+                  {chefName?.charAt(0)?.toUpperCase()}
                 </div>
               )}
             </div>
-            
-            {user?.role === 'customer' && (
-              <button 
+
+            {/* BOOK BUTTON */}
+            {(user?.role === 'customer' || user?.role === 'user') && (
+              <button
                 onClick={() => setShowBookingModal(true)}
                 className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm"
               >
-                Book {chef.name.split(' ')[0]}
+                Book {chefName?.split(' ')[0]}
               </button>
             )}
           </div>
-          
+
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{chef.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{chefName}</h1>
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mt-2">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {chef.chef_profile?.city || 'Location not specified'}
+                {chefCity}
               </div>
-              <div className="flex items-center gap-1 text-amber-500 font-medium">
+
+              <div className="flex items-center gap-2 text-amber-500 font-medium">
                 <Star className="h-4 w-4 fill-current" />
-                {chef.chef_profile?.rating || 'New'} Rating
+                <span>
+                  {roundedAverageRating > 0
+                    ? roundedAverageRating.toFixed(1)
+                    : 'No rating'}
+                </span>
+                <span className="text-gray-500 font-normal">
+                  ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+                </span>
               </div>
+
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {chef.chef_profile?.experience_years || 0} Years Experience
+                {experienceYears} Years Experience
               </div>
+
               <div className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                {chef.chef_profile?.hourly_rate || '0'}/hr
+                {hourlyRate}/hr
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-4">
+              {renderStars(averageRating, 20)}
+              <span className="text-sm text-gray-500">
+                {averageRating > 0
+                  ? `${averageRating.toFixed(1)} out of 5`
+                  : 'No ratings yet'}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* CONTENT */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        {/* LEFT COLUMN */}
         <div className="md:col-span-2 space-y-8">
+
+          {/* ABOUT */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-4">About the Chef</h2>
-            <p className="text-gray-600 leading-relaxed">
-              {chef.chef_profile?.bio || 'This chef has not provided a bio yet.'}
-            </p>
+            <p className="text-gray-600 leading-relaxed">{bio}</p>
+          </div>
+
+          {/* REVIEWS SECTION */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Customer Reviews</h2>
+                <div className="flex items-center gap-3 mt-2">
+                  {renderStars(averageRating, 18)}
+                  <span className="text-sm text-gray-600">
+                    {averageRating > 0
+                      ? `${averageRating.toFixed(1)} / 5`
+                      : 'No rating'}
+                  </span>
+                  <span className="text-sm text-gray-400">•</span>
+                  <span className="text-sm text-gray-500">
+                    {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
+                  </span>
+                </div>
+              </div>
+
+              {(user?.role === 'customer' || user?.role === 'user') && (
+                <button
+                  onClick={handleOpenReviewModal}
+                  disabled={hasUserReviewed}
+                  className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition ${
+                    hasUserReviewed
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-amber-500 text-white hover:bg-amber-600'
+                  }`}
+                >
+                  {hasUserReviewed ? (
+                    <>
+                      <CheckCircle size={17} />
+                      Review Submitted                    </>
+                  ) : (
+                    <>
+                      <MessageSquare size={17} />
+                      Add Review
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* REVIEW LIST - DISPLAY ALL REVIEWS */}
+            {reviewsLoading ? (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
+                <MessageSquare className="mx-auto text-gray-300 mb-3" size={35} />
+                <p className="text-gray-500">No reviews yet.</p>
+                {(user?.role === 'customer' || user?.role === 'user') && (
+                  <p className="text-sm text-gray-400 mt-1">
+                    Be the first customer to review this chef.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {reviews.map((review, index) => {
+                  const reviewer = review?.user || review?.customer || {};
+                  const reviewerName = 
+                    reviewer?.name ||
+                    reviewer?.full_name ||
+                    review?.user_name ||
+                    review?.customer_name ||
+                    'Customer';
+                  
+                  const reviewerPhoto = 
+                    reviewer?.photo_url ||
+                    reviewer?.photo ||
+                    reviewer?.profile_photo ||
+                    reviewer?.avatar ||
+                    review?.user_photo ||
+                    review?.customer_photo ||
+                    null;
+
+                  // Check if this is the current user's review
+                  const isCurrentUserReview = user?.id && (
+                    Number(review?.user_id) === Number(user.id) ||
+                    Number(review?.customer_id) === Number(user.id) ||
+                    Number(reviewer?.id) === Number(user.id)
+                  );
+
+                  return (
+                    <div
+                      key={review?.id || `review-${index}`}
+                      className={`border-b border-gray-100 last:border-b-0 pb-5 last:pb-0 ${
+                        isCurrentUserReview ? 'bg-blue-50 -mx-6 px-6 py-4 rounded-lg' : ''
+                      }`}
+                    >
+                      {isCurrentUserReview && (
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs text-blue-600 font-semibold">Your Review</div>
+                          <div className="flex items-center gap-2">
+                            {/* ✅ EDIT BUTTON */}
+                            <button
+                              onClick={() => handleEditReview(review)}
+                              className="text-blue-600 hover:text-blue-800 transition p-1"
+                              title="Edit Review"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            {/* ✅ DELETE BUTTON */}
+                            <button
+                              onClick={() => handleDeleteClick(review.id)}
+                              className="text-red-500 hover:text-red-700 transition p-1"
+                              title="Delete Review"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden flex-shrink-0">
+                            {reviewerPhoto ? (
+                              <img
+                                src={reviewerPhoto}
+                                alt={reviewerName}
+                                className="w-full h-full rounded-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <User size={20} />
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {reviewerName}
+                              {isCurrentUserReview && (
+                                <span className="ml-2 text-xs text-blue-600 font-normal">(You)</span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {renderStars(review.rating, 15)}
+                              <span className="text-xs text-gray-400">
+                                {review.created_at
+                                  ? new Date(review.created_at).toLocaleDateString()
+                                  : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {review.comment ? (
+                        <p className="text-gray-800 text-sm leading-relaxed mt-3 ml-12">
+                          {review.comment}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 text-sm italic mt-3 ml-12">
+                          No comment provided.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
+        {/* RIGHT COLUMN */}
         <div className="space-y-8">
+
+          {/* SPECIALTIES */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Specialties</h2>
             <div className="flex flex-wrap gap-2">
-              {chef.chef_profile?.cuisine_specialities?.length > 0 ? (
-                chef.chef_profile.cuisine_specialities.map((cuisine, idx) => (
-                  <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100">
+              {cuisineSpecialities.length > 0 ? (
+                cuisineSpecialities.map((cuisine, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100"
+                  >
                     {cuisine}
                   </span>
                 ))
@@ -152,96 +1377,344 @@ export default function ChefDetails() {
               )}
             </div>
           </div>
+
+          {/* RATING SUMMARY */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Rating Summary</h2>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-gray-900">
+                {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+              </div>
+              <div className="flex justify-center mt-2">
+                {renderStars(averageRating, 20)}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Based on {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Booking Modal */}
+      {/* =====================================================
+          REVIEW MODAL (Add/Edit)
+      ===================================================== */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative">
+            <button
+              onClick={handleCloseReviewModal}
+              disabled={reviewLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            >
+              <X size={22} />
+            </button>
+
+            <div className="mb-6 pr-8">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="text-amber-500" size={24} />
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {isEditing ? 'Edit' : 'Review'} {chefName}
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                {isEditing 
+                  ? 'Update your review for this chef.' 
+                  : 'Share your experience with this chef.'}
+              </p>
+            </div>
+
+            {reviewError && (
+              <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg text-sm mb-4">
+                {reviewError}
+              </div>
+            )}
+
+            {reviewSuccess && (
+              <div className="bg-green-50 border border-green-100 text-green-600 p-3 rounded-lg text-sm mb-4">
+                {reviewSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleReviewSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Your Rating
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => handleRatingSelect(star)}
+                      disabled={reviewLoading}
+                      className="p-1 transition-transform hover:scale-110 disabled:opacity-50"
+                    >
+                      <Star
+                        size={34}
+                        className={
+                          star <= reviewForm.rating
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-gray-300 hover:text-amber-300'
+                        }
+                      />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {reviewForm.rating === 0
+                    ? 'Select a rating'
+                    : `${reviewForm.rating} out of 5 stars`}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Comment
+                  <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                </label>
+                <textarea
+                  rows="5"
+                  value={reviewForm.comment}
+                  onChange={(e) =>
+                    setReviewForm((previous) => ({
+                      ...previous,
+                      comment: e.target.value,
+                    }))
+                  }
+                  placeholder="Tell us about your experience with this chef..."
+                  maxLength={1000}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none resize-none"
+                  disabled={reviewLoading}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-gray-400">Optional</span>
+                  <span className="text-xs text-gray-400">
+                    {reviewForm.comment.length}/1000
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={reviewLoading}
+                className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white font-semibold py-3 rounded-xl hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {reviewLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {isEditing ? 'Updating...' : 'Submitting...'}
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    {isEditing ? 'Update Review' : 'Submit Review'}
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+      ===================================================== */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl relative">
+            <button
+              onClick={handleDeleteClose}
+              disabled={deleteLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            >
+              <X size={22} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="text-red-600" size={28} />
+              </div>
+
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Delete Review
+              </h2>
+
+              <p className="text-gray-600 text-sm mb-6">
+                Are you sure you want to delete your review? This action cannot be undone.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteClose}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteLoading}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          BOOKING MODAL
+      ===================================================== */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setShowBookingModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            <button
+              onClick={() => {
+                if (!bookingLoading) {
+                  setShowBookingModal(false);
+                  setBookingError('');
+                }
+              }}
+              disabled={bookingLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
             >
-              ✕
+              <X size={22} />
             </button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Book {chef.name}</h2>
-            
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 pr-8">
+              Book {chefName}
+            </h2>
+
             {bookingError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
+              <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg text-sm mb-4">
                 {bookingError}
               </div>
             )}
 
             <form onSubmit={handleBookingSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Date
+                </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
                     value={bookingForm.event_date}
-                    onChange={(e) => setBookingForm({...bookingForm, event_date: e.target.value})}
+                    onChange={(e) =>
+                      setBookingForm((previous) => ({
+                        ...previous,
+                        event_date: e.target.value,
+                      }))
+                    }
+                    disabled={bookingLoading}
                   />
                 </div>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Time</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Time
+                </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
                     value={bookingForm.event_time}
-                    onChange={(e) => setBookingForm({...bookingForm, event_time: e.target.value})}
+                    onChange={(e) =>
+                      setBookingForm((previous) => ({
+                        ...previous,
+                        event_time: e.target.value,
+                      }))
+                    }
+                    disabled={bookingLoading}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type (e.g., Wedding, Birthday)</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Type
+                </label>
+                <input
+                  type="text"
                   required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Wedding, Birthday, Party..."
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
                   value={bookingForm.event_type}
-                  onChange={(e) => setBookingForm({...bookingForm, event_type: e.target.value})}
+                  onChange={(e) =>
+                    setBookingForm((previous) => ({
+                      ...previous,
+                      event_type: e.target.value,
+                    }))
+                  }
+                  disabled={bookingLoading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location / Venue</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location / Venue
+                </label>
+                <input
+                  type="text"
                   required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Event location"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
                   value={bookingForm.location}
-                  onChange={(e) => setBookingForm({...bookingForm, location: e.target.value})}
+                  onChange={(e) =>
+                    setBookingForm((previous) => ({
+                      ...previous,
+                      location: e.target.value,
+                    }))
+                  }
+                  disabled={bookingLoading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Guests</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of Guests
+                </label>
                 <div className="relative">
                   <Users className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min="1"
                     required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
                     value={bookingForm.guests_count}
-                    onChange={(e) => setBookingForm({...bookingForm, guests_count: e.target.value})}
+                    onChange={(e) =>
+                      setBookingForm((previous) => ({
+                        ...previous,
+                        guests_count: e.target.value,
+                      }))
+                    }
+                    disabled={bookingLoading}
                   />
                 </div>
               </div>
 
               <div className="mt-8">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={bookingLoading}
                   className="w-full bg-blue-600 text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
                 >
