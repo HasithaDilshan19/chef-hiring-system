@@ -11,220 +11,55 @@ import {
   DollarSign,
   ChefHat,
   AlertCircle,
-  Navigation
+  LocateFixed
 } from 'lucide-react';
 
 const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // =====================================================
+  // ---------------------------------------------------------
   // ROLE
-  // =====================================================
+  // ---------------------------------------------------------
   const [role, setRole] = useState('user');
 
-  // =====================================================
+  // ---------------------------------------------------------
   // GENERAL USER DETAILS
-  // =====================================================
+  // ---------------------------------------------------------
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
 
-  // =====================================================
+  // ---------------------------------------------------------
   // CHEF DETAILS
-  // =====================================================
+  // ---------------------------------------------------------
   const [experience, setExperience] = useState('2');
   const [specialities, setSpecialities] = useState([]);
   const [rate, setRate] = useState('2000');
-  const [city, setCity] = useState('Colombo');
+  const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
 
-  // Default Colombo coordinates
-  const [lat, setLat] = useState('6.927179');
-  const [lng, setLng] = useState('79.861244');
+  // ---------------------------------------------------------
+  // ACTUAL GPS LOCATION
+  // ---------------------------------------------------------
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
 
-  // =====================================================
-  // STATES
-  // =====================================================
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
+
+  // ---------------------------------------------------------
+  // ERRORS / LOADING
+  // ---------------------------------------------------------
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // =====================================================
-  // SRI LANKA CITY COORDINATES
-  // =====================================================
-  const cityCoordinates = {
-    Colombo: {
-      lat: 6.927179,
-      lng: 79.861244
-    },
-
-    Kandy: {
-      lat: 7.290572,
-      lng: 80.633728
-    },
-
-    Galle: {
-      lat: 6.053519,
-      lng: 80.220978
-    },
-
-    Jaffna: {
-      lat: 9.661498,
-      lng: 80.025547
-    },
-
-    Negombo: {
-      lat: 7.208300,
-      lng: 79.835800
-    },
-
-    'Nuwara Eliya': {
-      lat: 6.949716,
-      lng: 80.789106
-    },
-
-    Anuradhapura: {
-      lat: 8.311400,
-      lng: 80.403700
-    },
-
-    Trincomalee: {
-      lat: 8.587400,
-      lng: 81.215200
-    },
-
-    Batticaloa: {
-      lat: 7.717000,
-      lng: 81.700000
-    },
-
-    Matara: {
-      lat: 5.954900,
-      lng: 80.555000
-    },
-
-    Kurunegala: {
-      lat: 7.486300,
-      lng: 80.362300
-    },
-
-    Ratnapura: {
-      lat: 6.682800,
-      lng: 80.399200
-    },
-
-    Badulla: {
-      lat: 6.993400,
-      lng: 81.055000
-    },
-
-    Bandarawela: {
-      lat: 6.825900,
-      lng: 80.998200
-    },
-
-    Kegalle: {
-      lat: 7.251300,
-      lng: 80.346400
-    },
-
-    Kalutara: {
-      lat: 6.585400,
-      lng: 79.960700
-    },
-
-    Panadura: {
-      lat: 6.713200,
-      lng: 79.907400
-    },
-
-    Moratuwa: {
-      lat: 6.773000,
-      lng: 79.881600
-    },
-
-    Dehiwala: {
-      lat: 6.856100,
-      lng: 79.865600
-    },
-
-    Maharagama: {
-      lat: 6.849400,
-      lng: 79.926500
-    },
-
-    'Sri Jayawardenepura Kotte': {
-      lat: 6.894100,
-      lng: 79.902500
-    },
-
-    Dambulla: {
-      lat: 7.873100,
-      lng: 80.771800
-    },
-
-    Polonnaruwa: {
-      lat: 7.940300,
-      lng: 81.018800
-    },
-
-    Chilaw: {
-      lat: 7.575800,
-      lng: 79.795300
-    },
-
-    Hambantota: {
-      lat: 6.124100,
-      lng: 81.118500
-    },
-
-    Ampara: {
-      lat: 7.291700,
-      lng: 81.672100
-    },
-
-    Vavuniya: {
-      lat: 8.751400,
-      lng: 80.497100
-    },
-
-    Mannar: {
-      lat: 8.981000,
-      lng: 79.904400
-    },
-
-    Kilinochchi: {
-      lat: 9.380300,
-      lng: 80.377000
-    },
-
-    Mullaitivu: {
-      lat: 9.267100,
-      lng: 80.814200
-    },
-
-    Puttalam: {
-      lat: 8.036200,
-      lng: 79.828300
-    },
-
-    Matale: {
-      lat: 7.467500,
-      lng: 80.623400
-    },
-
-    Monaragala: {
-      lat: 6.872800,
-      lng: 81.350700
-    }
-  };
-
-  // =====================================================
-  // CUISINES
-  // =====================================================
+  // ---------------------------------------------------------
+  // AVAILABLE CUISINES
+  // ---------------------------------------------------------
   const availableCuisines = [
     'Sri Lankan',
     'Indian',
@@ -233,31 +68,46 @@ const Register = () => {
     'Italian'
   ];
 
-  // =====================================================
-  // CITY CHANGE
-  // =====================================================
-  const handleCityChange = (e) => {
-    const selectedCity = e.target.value;
+  // ---------------------------------------------------------
+  // SRI LANKAN CITIES
+  // ---------------------------------------------------------
+  const sriLankanCities = [
+    'Colombo',
+    'Kandy',
+    'Galle',
+    'Jaffna',
+    'Negombo',
+    'Kurunegala',
+    'Kuliyapitiya',
+    'Anuradhapura',
+    'Polonnaruwa',
+    'Matara',
+    'Hambantota',
+    'Ratnapura',
+    'Badulla',
+    'Nuwara Eliya',
+    'Batticaloa',
+    'Trincomalee',
+    'Ampara',
+    'Kalutara',
+    'Gampaha',
+    'Kegalle',
+    'Matale',
+    'Puttalam',
+    'Vavuniya',
+    'Mannar',
+    'Kilinochchi',
+    'Mullaitivu',
+    'Monaragala'
+  ];
 
-    setCity(selectedCity);
-
-    const coordinates = cityCoordinates[selectedCity];
-
-    if (coordinates) {
-      setLat(coordinates.lat.toFixed(6));
-      setLng(coordinates.lng.toFixed(6));
-    }
-  };
-
-  // =====================================================
+  // ---------------------------------------------------------
   // CUISINE TOGGLE
-  // =====================================================
+  // ---------------------------------------------------------
   const handleCuisineToggle = (cuisine) => {
     if (specialities.includes(cuisine)) {
       setSpecialities(
-        specialities.filter(
-          (item) => item !== cuisine
-        )
+        specialities.filter((item) => item !== cuisine)
       );
     } else {
       setSpecialities([
@@ -267,122 +117,180 @@ const Register = () => {
     }
   };
 
-  // =====================================================
-  // GENERATE LOCATION
-  // =====================================================
-  const handleMockLocation = () => {
-    const selectedCityCoordinates =
-      cityCoordinates[city];
+  // ---------------------------------------------------------
+  // PHONE NUMBER
+  // EXACTLY 10 DIGITS
+  // ---------------------------------------------------------
+  const handlePhoneChange = (e) => {
+    // Remove everything except numbers
+    const value = e.target.value.replace(/\D/g, '');
 
-    if (!selectedCityCoordinates) {
+    // Allow maximum 10 digits
+    if (value.length <= 10) {
+      setPhone(value);
+    }
+  };
+
+  // ---------------------------------------------------------
+  // GET ACTUAL CURRENT GPS LOCATION
+  // ---------------------------------------------------------
+  const handleGetCurrentLocation = () => {
+    setLocationError('');
+    setError('');
+
+    if (!navigator.geolocation) {
+      setLocationError(
+        'Geolocation is not supported by this browser.'
+      );
       return;
     }
 
-    /*
-     * Generate a small random offset around
-     * the selected city.
-     *
-     * This prevents every chef in the same
-     * city from having exactly the same
-     * coordinates.
-     */
-    const randomOffset = () => {
-      return (Math.random() - 0.5) * 0.02;
-    };
+    setLocationLoading(true);
 
-    const newLat =
-      selectedCityCoordinates.lat +
-      randomOffset();
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
 
-    const newLng =
-      selectedCityCoordinates.lng +
-      randomOffset();
+        setLat(latitude.toFixed(8));
+        setLng(longitude.toFixed(8));
 
-    setLat(newLat.toFixed(6));
-    setLng(newLng.toFixed(6));
+        setLocationLoading(false);
+        setLocationError('');
+      },
+
+      (geoError) => {
+        setLocationLoading(false);
+
+        switch (geoError.code) {
+          case geoError.PERMISSION_DENIED:
+            setLocationError(
+              'Location permission denied. Please allow location access in your browser and try again.'
+            );
+            break;
+
+          case geoError.POSITION_UNAVAILABLE:
+            setLocationError(
+              'Your current location could not be determined.'
+            );
+            break;
+
+          case geoError.TIMEOUT:
+            setLocationError(
+              'Location request timed out. Please try again.'
+            );
+            break;
+
+          default:
+            setLocationError(
+              'Unable to get your current location.'
+            );
+        }
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
   };
 
-  // =====================================================
-  // SUBMIT
-  // =====================================================
+  // ---------------------------------------------------------
+  // FORM SUBMIT
+  // ---------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError('');
     setFieldErrors({});
+    setLocationError('');
 
-    // Password validation
-    if (
-      password !== passwordConfirmation
-    ) {
+    // -------------------------------------------------------
+    // PHONE VALIDATION
+    // EXACTLY 10 DIGITS
+    // -------------------------------------------------------
+    if (!/^\d{10}$/.test(phone)) {
       setError(
-        'Passwords do not match.'
+        'Phone number must contain exactly 10 digits.'
       );
       return;
     }
 
-    // Chef cuisine validation
-    if (
-      role === 'chef' &&
-      specialities.length === 0
-    ) {
-      setError(
-        'Please select at least one cuisine speciality.'
-      );
+    // -------------------------------------------------------
+    // PASSWORD VALIDATION
+    // -------------------------------------------------------
+    if (password !== passwordConfirmation) {
+      setError('Passwords do not match.');
       return;
     }
 
-    // =================================================
+    // -------------------------------------------------------
+    // CHEF VALIDATIONS
+    // -------------------------------------------------------
+    if (role === 'chef') {
+      if (specialities.length === 0) {
+        setError(
+          'Please select at least one cuisine speciality.'
+        );
+        return;
+      }
+
+      if (!city) {
+        setError(
+          'Please select your city.'
+        );
+        return;
+      }
+
+      if (!lat || !lng) {
+        setError(
+          'Please click "Get My Current Location" and allow location access before registering as a chef.'
+        );
+        return;
+      }
+    }
+
+    // -------------------------------------------------------
     // BASIC PAYLOAD
-    // =================================================
+    // -------------------------------------------------------
     const payload = {
       name,
       email,
       phone,
       city,
       password,
-      password_confirmation:
-        passwordConfirmation,
+      password_confirmation: passwordConfirmation,
       role
     };
 
-    // =================================================
+    // -------------------------------------------------------
     // CHEF PAYLOAD
-    // =================================================
+    // -------------------------------------------------------
     if (role === 'chef') {
-      payload.experience_years =
-        parseInt(experience, 10);
+      payload.experience_years = parseInt(
+        experience,
+        10
+      );
 
-      payload.cuisine_specialities =
-        specialities;
+      payload.cuisine_specialities = specialities;
 
-      payload.hourly_rate =
-        parseFloat(rate);
+      payload.hourly_rate = parseFloat(
+        rate
+      );
 
       payload.city = city;
 
       payload.bio = bio;
 
-      // IMPORTANT:
-      // Send selected city's coordinates
-      payload.latitude =
-        parseFloat(lat);
-
-      payload.longitude =
-        parseFloat(lng);
+      payload.latitude = parseFloat(lat);
+      payload.longitude = parseFloat(lng);
     }
-
-    // Check data before sending
-    console.log(
-      'REGISTER PAYLOAD:',
-      payload
-    );
 
     setLoading(true);
 
     try {
-      const result =
-        await register(payload);
+      const result = await register(payload);
 
       setLoading(false);
 
@@ -398,14 +306,10 @@ const Register = () => {
 
         } else {
 
-          if (
-            result.user.role === 'admin'
-          ) {
+          if (result.user.role === 'admin') {
             navigate('/admin');
 
-          } else if (
-            result.user.role === 'chef'
-          ) {
+          } else if (result.user.role === 'chef') {
             navigate('/chef');
 
           } else {
@@ -414,13 +318,10 @@ const Register = () => {
         }
 
       } else {
-
         setError(result.message);
 
         if (result.errors) {
-          setFieldErrors(
-            result.errors
-          );
+          setFieldErrors(result.errors);
         }
       }
 
@@ -434,36 +335,26 @@ const Register = () => {
       );
 
       setError(
-        err.response?.data?.message ||
+        err?.response?.data?.message ||
         'Registration failed. Please try again.'
       );
-
-      if (
-        err.response?.data?.errors
-      ) {
-        setFieldErrors(
-          err.response.data.errors
-        );
-      }
     }
   };
 
-  // =====================================================
-  // UI
-  // =====================================================
+  // ---------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100 flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
 
-      {/* Background */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl -z-10" />
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl -z-10"></div>
 
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl -z-10"></div>
 
       <div className="w-full max-w-2xl space-y-8 bg-slate-900/40 backdrop-blur-md p-8 rounded-3xl border border-slate-800">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
+        {/* HEADER */}
         <div className="text-center">
 
           <Link
@@ -475,7 +366,7 @@ const Register = () => {
               className="text-amber-500"
             />
 
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-white font-sans">
               ChefHire
             </span>
           </Link>
@@ -490,9 +381,7 @@ const Register = () => {
 
         </div>
 
-        {/* =================================================
-            ROLE SELECTOR
-        ================================================= */}
+        {/* ROLE SELECTOR */}
         <div className="flex p-1 bg-slate-950 border border-slate-800 rounded-2xl max-w-sm mx-auto">
 
           <button
@@ -500,8 +389,9 @@ const Register = () => {
             onClick={() => {
               setRole('user');
               setError('');
+              setLocationError('');
             }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-xl cursor-pointer transition-all ${
+            className={`flex-1 py-2 text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200 ${
               role === 'user'
                 ? 'bg-amber-500 text-slate-950 shadow-lg'
                 : 'text-slate-400 hover:text-white'
@@ -515,8 +405,9 @@ const Register = () => {
             onClick={() => {
               setRole('chef');
               setError('');
+              setLocationError('');
             }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-xl cursor-pointer transition-all ${
+            className={`flex-1 py-2 text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200 ${
               role === 'chef'
                 ? 'bg-amber-500 text-slate-950 shadow-lg'
                 : 'text-slate-400 hover:text-white'
@@ -527,9 +418,7 @@ const Register = () => {
 
         </div>
 
-        {/* =================================================
-            ERROR
-        ================================================= */}
+        {/* ERROR */}
         {error && (
           <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm max-w-xl mx-auto">
 
@@ -538,22 +427,20 @@ const Register = () => {
               className="shrink-0 mt-0.5"
             />
 
-            <span>{error}</span>
+            <span>
+              {error}
+            </span>
 
           </div>
         )}
 
-        {/* =================================================
-            FORM
-        ================================================= */}
+        {/* FORM */}
         <form
           onSubmit={handleSubmit}
           className="space-y-6 max-w-xl mx-auto"
         >
 
-          {/* =================================================
-              GENERAL INFORMATION
-          ================================================= */}
+          {/* GENERAL INFORMATION */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
             {/* NAME */}
@@ -565,10 +452,9 @@ const Register = () => {
 
               <div className="relative">
 
-                <User
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <User size={18} />
+                </span>
 
                 <input
                   type="text"
@@ -577,7 +463,7 @@ const Register = () => {
                     setName(e.target.value)
                   }
                   placeholder="Kamal Perera"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 />
 
@@ -600,10 +486,9 @@ const Register = () => {
 
               <div className="relative">
 
-                <Mail
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Mail size={18} />
+                </span>
 
                 <input
                   type="email"
@@ -612,7 +497,7 @@ const Register = () => {
                     setEmail(e.target.value)
                   }
                   placeholder="kamal@gmail.com"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 />
 
@@ -635,22 +520,38 @@ const Register = () => {
 
               <div className="relative">
 
-                <Phone
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Phone size={18} />
+                </span>
 
                 <input
-                  type="text"
+                  type="tel"
                   value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value)
-                  }
+                  onChange={handlePhoneChange}
                   placeholder="0771234567"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 />
 
+              </div>
+
+              <div className="flex justify-between mt-1">
+                <p className="text-xs text-slate-500">
+                  Enter exactly 10 digits
+                </p>
+
+                <p
+                  className={`text-xs ${
+                    phone.length === 10
+                      ? 'text-green-400'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {phone.length}/10
+                </p>
               </div>
 
               {fieldErrors.phone && (
@@ -670,27 +571,33 @@ const Register = () => {
 
               <div className="relative">
 
-                <MapPin
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <MapPin size={18} />
+                </span>
 
                 <select
                   value={city}
-                  onChange={handleCityChange}
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  onChange={(e) =>
+                    setCity(e.target.value)
+                  }
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
+                  required={role === 'chef'}
                 >
 
-                  {Object.keys(
-                    cityCoordinates
-                  ).map((cityName) => (
-                    <option
-                      key={cityName}
-                      value={cityName}
-                    >
-                      {cityName}
-                    </option>
-                  ))}
+                  <option value="">
+                    Select your city
+                  </option>
+
+                  {sriLankanCities.map(
+                    (cityName) => (
+                      <option
+                        key={cityName}
+                        value={cityName}
+                      >
+                        {cityName}
+                      </option>
+                    )
+                  )}
 
                 </select>
 
@@ -707,21 +614,18 @@ const Register = () => {
 
               <div className="relative">
 
-                <Lock
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Lock size={18} />
+                </span>
 
                 <input
                   type="password"
                   value={password}
                   onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
+                    setPassword(e.target.value)
                   }
                   placeholder="••••••••"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 />
 
@@ -744,10 +648,9 @@ const Register = () => {
 
               <div className="relative">
 
-                <Lock
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Lock size={18} />
+                </span>
 
                 <input
                   type="password"
@@ -758,7 +661,7 @@ const Register = () => {
                     )
                   }
                   placeholder="••••••••"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 />
 
@@ -768,9 +671,7 @@ const Register = () => {
 
           </div>
 
-          {/* =================================================
-              CHEF DETAILS
-          ================================================= */}
+          {/* CHEF DETAILS */}
           {role === 'chef' && (
 
             <div className="pt-6 border-t border-slate-800 space-y-6">
@@ -791,21 +692,18 @@ const Register = () => {
 
                   <div className="relative">
 
-                    <Award
-                      size={18}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                    />
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                      <Award size={18} />
+                    </span>
 
                     <input
                       type="number"
                       value={experience}
                       onChange={(e) =>
-                        setExperience(
-                          e.target.value
-                        )
+                        setExperience(e.target.value)
                       }
                       min="0"
-                      className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                       required
                     />
 
@@ -822,21 +720,18 @@ const Register = () => {
 
                   <div className="relative">
 
-                    <DollarSign
-                      size={18}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                    />
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                      <DollarSign size={18} />
+                    </span>
 
                     <input
                       type="number"
                       value={rate}
                       onChange={(e) =>
-                        setRate(
-                          e.target.value
-                        )
+                        setRate(e.target.value)
                       }
                       min="0"
-                      className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                       required
                     />
 
@@ -846,64 +741,62 @@ const Register = () => {
 
               </div>
 
-              {/* =================================================
-                  LOCATION
-              ================================================= */}
+              {/* ACTUAL GPS LOCATION */}
               <div>
 
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
 
                   <label className="block text-sm font-medium text-slate-300">
-                    Geographical Location
+                    Current Geographical Location
                   </label>
 
                   <button
                     type="button"
-                    onClick={handleMockLocation}
-                    className="flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300"
+                    onClick={handleGetCurrentLocation}
+                    disabled={locationLoading}
+                    className="flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Navigation size={14} />
-                    Generate Location
+
+                    <LocateFixed size={15} />
+
+                    {locationLoading
+                      ? 'Getting Location...'
+                      : 'Get My Current Location'}
+
                   </button>
 
                 </div>
 
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
 
-                  <div className="flex justify-between items-center mb-4">
+                  <p className="text-xs text-slate-500 mb-3">
+                    Your actual browser GPS location will be used for distance calculation and AI chef recommendations.
+                  </p>
 
-                    <span className="text-sm text-slate-400">
-                      Selected City
-                    </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                    <span className="text-sm font-semibold text-amber-400">
-                      {city}
-                    </span>
-
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-
-                    <div className="bg-slate-900 rounded-lg p-3">
+                    {/* LATITUDE */}
+                    <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
 
                       <p className="text-xs text-slate-500 mb-1">
                         Latitude
                       </p>
 
-                      <p className="text-sm font-mono text-white">
-                        {lat}
+                      <p className="text-sm font-mono text-white break-all">
+                        {lat || 'Not detected'}
                       </p>
 
                     </div>
 
-                    <div className="bg-slate-900 rounded-lg p-3">
+                    {/* LONGITUDE */}
+                    <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
 
                       <p className="text-xs text-slate-500 mb-1">
                         Longitude
                       </p>
 
-                      <p className="text-sm font-mono text-white">
-                        {lng}
+                      <p className="text-sm font-mono text-white break-all">
+                        {lng || 'Not detected'}
                       </p>
 
                     </div>
@@ -912,18 +805,40 @@ const Register = () => {
 
                 </div>
 
-                <p className="text-xs text-slate-500 mt-2">
-                  Selecting a city automatically sets its
-                  geographical coordinates. Generate Location
-                  creates a slightly different location within
-                  the selected city area.
-                </p>
+                {/* LOCATION ERROR */}
+                {locationError && (
+
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+
+                    <AlertCircle
+                      size={16}
+                      className="text-red-400 shrink-0 mt-0.5"
+                    />
+
+                    <p className="text-xs text-red-400">
+                      {locationError}
+                    </p>
+
+                  </div>
+
+                )}
+
+                {/* LOCATION SUCCESS */}
+                {lat && lng && !locationError && (
+
+                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+
+                    <p className="text-xs text-green-400">
+                      ✓ Actual GPS location detected successfully.
+                    </p>
+
+                  </div>
+
+                )}
 
               </div>
 
-              {/* =================================================
-                  CUISINE
-              ================================================= */}
+              {/* CUISINE SPECIALITIES */}
               <div>
 
                 <label className="block text-sm font-medium text-slate-300 mb-3">
@@ -941,6 +856,7 @@ const Register = () => {
                         );
 
                       return (
+
                         <button
                           type="button"
                           key={cuisine}
@@ -949,31 +865,24 @@ const Register = () => {
                               cuisine
                             )
                           }
-                          className={`px-4 py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
+                          className={`px-4 py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all duration-200 ${
                             isSelected
-                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300'
+                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm'
+                              : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-300'
                           }`}
                         >
                           {cuisine}
                         </button>
+
                       );
                     }
                   )}
 
                 </div>
 
-                {specialities.length === 0 && (
-                  <p className="text-xs text-red-400 mt-2">
-                    Select at least one cuisine.
-                  </p>
-                )}
-
               </div>
 
-              {/* =================================================
-                  BIO
-              ================================================= */}
+              {/* BIO */}
               <div>
 
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -987,7 +896,7 @@ const Register = () => {
                   }
                   placeholder="Tell customers about your signature dishes, catering scale, or certifications..."
                   rows="3"
-                  className="block w-full px-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 resize-none"
+                  className="block w-full px-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200 resize-none"
                 />
 
               </div>
@@ -995,24 +904,21 @@ const Register = () => {
             </div>
           )}
 
-          {/* =================================================
-              SUBMIT
-          ================================================= */}
+          {/* REGISTER BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="flex justify-center items-center gap-2 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all disabled:opacity-50"
+            className="flex justify-center items-center gap-2 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-slate-950 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
 
             {loading ? (
 
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 
             ) : (
 
               <>
                 <ChefHat size={18} />
-
                 <span>
                   Register Account
                 </span>

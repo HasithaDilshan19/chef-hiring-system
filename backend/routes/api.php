@@ -19,6 +19,9 @@ Route::get('/settings', function () {
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgotPassword/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/forgotPassword/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/forgotPassword/reset', [AuthController::class, 'resetPassword']);
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {

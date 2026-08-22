@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings, StarCheckIcon } from 'lucide-react';
 
 export default function Sidebar() {
   const { user, isUser, isChef, isAdmin, systemName, systemLogo } = useAuth();
@@ -14,6 +14,7 @@ export default function Sidebar() {
       { name: 'My Profile', path: '/profile', icon: UserCircle },
       { name: 'Find Chefs', path: '/search', icon: Users },
       { name: 'My Bookings', path: '/bookings', icon: CalendarDays },
+      
     ];
   } else if (isChef()) {
     links = [

@@ -17,6 +17,7 @@ import ChefDetails from './pages/customer/ChefDetails';
 import UserBookings from './pages/customer/UserBookings';
 import UserProfile from './pages/customer/UserProfile';
 import Layout from './components/layout/Layout';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Helper component to redirect authenticated users to their correct dashboard
 const RootRedirect = () => {
@@ -43,6 +44,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgotpassword" element={<ForgotPassword />} />
 
           {/* Protected Role-Based Routes */}
           <Route element={<Layout />}>
