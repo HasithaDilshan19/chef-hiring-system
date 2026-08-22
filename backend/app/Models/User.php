@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -11,9 +12,22 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'email', 'password', 'role', 'phone', 'city', 'status', 'photo_url'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'role',
+    'phone',
+    'city',
+    'status',
+    'photo_url'
+])]
+#[Hidden([
+    'password',
+    'remember_token'
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -37,7 +51,35 @@ class User extends Authenticatable
      */
     public function chefProfile(): HasOne
     {
-        return $this->hasOne(ChefProfile::class);
+        return $this->hasOne(
+            ChefProfile::class,
+            'user_id'
+        );
+    }
+
+    /**
+     * Get reviews written by this user/customer.
+     */
+    public function chefReviews(): HasMany
+    {
+        return $this->hasMany(
+            Review::class,
+            'user_id'
+        );
+    }
+
+    /**
+     * Get reviews received by this chef.
+     *
+     * chef_reviews.chef_id
+     * references users.id
+     */
+    public function receivedChefReviews(): HasMany
+    {
+        return $this->hasMany(
+            Review::class,
+            'chef_id'
+        );
     }
 
     /**
@@ -64,4 +106,3 @@ class User extends Authenticatable
         return $this->role === 'user';
     }
 }
-
