@@ -96,14 +96,53 @@ class ChefController extends Controller
                 ], 404);
             }
 
+            // ✅ Fix: Load user with all fields including photo
             $reviews = Review::where('chef_id', $chef->id)
-                ->with('user:id,name,photo_url')
+                ->with('user')
                 ->latest()
                 ->get();
 
             $averageRating = $reviews->count() > 0
                 ? round($reviews->avg('rating'), 1)
                 : 0;
+
+            // ✅ Fix: Format reviews with full photo URL
+            $formattedReviews = $reviews->map(function ($review) {
+                $user = $review->user;
+                $userPhoto = null;
+                
+                if ($user) {
+                    $userPhoto = $user->photo_url ?? 
+                                $user->photo ?? 
+                                $user->profile_photo ?? 
+                                $user->avatar ?? 
+                                $user->profile_photo_url ?? 
+                                null;
+                    
+                    if ($userPhoto && !filter_var($userPhoto, FILTER_VALIDATE_URL)) {
+                        $userPhoto = url($userPhoto);
+                    }
+                }
+
+                return [
+                    'id' => $review->id,
+                    'chef_id' => $review->chef_id,
+                    'user_id' => $review->user_id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'created_at' => $review->created_at,
+                    'updated_at' => $review->updated_at,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'photo_url' => $userPhoto,
+                        'photo' => $userPhoto,
+                        'profile_photo' => $userPhoto,
+                        'avatar' => $userPhoto,
+                    ] : null,
+                ];
+            });
 
             return response()->json([
                 'status' => 'success',
@@ -143,6 +182,11 @@ class ChefController extends Controller
                     'rating' => $averageRating,
                     'reviews_count' => $reviews->count(),
                 ],
+
+                // ✅ Add reviews to response
+                'reviews' => $formattedReviews,
+                'average_rating' => $averageRating,
+                'review_count' => $reviews->count(),
             ]);
 
         } catch (\Exception $e) {
@@ -229,7 +273,7 @@ class ChefController extends Controller
 
 
     /**
-     * Get reviews for a chef
+     * Get reviews for a chef - ✅ FIXED with profile photo
      */
     public function reviews($chefId)
     {
@@ -245,14 +289,53 @@ class ChefController extends Controller
                 ], 404);
             }
 
+            // ✅ Fix: Load user with all fields including photo
             $reviews = Review::where('chef_id', $chefId)
-                ->with('user:id,name,photo_url')
+                ->with('user')
                 ->latest()
                 ->get();
 
+            // ✅ Fix: Format reviews with full photo URL
+            $formattedReviews = $reviews->map(function ($review) {
+                $user = $review->user;
+                $userPhoto = null;
+                
+                if ($user) {
+                    $userPhoto = $user->photo_url ?? 
+                                $user->photo ?? 
+                                $user->profile_photo ?? 
+                                $user->avatar ?? 
+                                $user->profile_photo_url ?? 
+                                null;
+                    
+                    if ($userPhoto && !filter_var($userPhoto, FILTER_VALIDATE_URL)) {
+                        $userPhoto = url($userPhoto);
+                    }
+                }
+
+                return [
+                    'id' => $review->id,
+                    'chef_id' => $review->chef_id,
+                    'user_id' => $review->user_id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'created_at' => $review->created_at,
+                    'updated_at' => $review->updated_at,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'photo_url' => $userPhoto,
+                        'photo' => $userPhoto,
+                        'profile_photo' => $userPhoto,
+                        'avatar' => $userPhoto,
+                    ] : null,
+                ];
+            });
+
             return response()->json([
                 'status' => 'success',
-                'reviews' => $reviews,
+                'reviews' => $formattedReviews,
                 'average_rating' => $reviews->count() > 0
                     ? round($reviews->avg('rating'), 1)
                     : 0,
@@ -269,13 +352,14 @@ class ChefController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch reviews.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
 
     /**
-     * Add review
+     * Add review - ✅ FIXED with profile photo
      */
     public function addReview(Request $request, $chefId)
     {
@@ -333,12 +417,46 @@ class ChefController extends Controller
                 'comment' => $validated['comment'],
             ]);
 
-            $review->load('user:id,name,photo_url');
+            // ✅ Fix: Load user with all fields
+            $review->load('user');
+
+            // ✅ Fix: Format the review with full photo URL
+            $userData = $review->user;
+            $userPhoto = null;
+            if ($userData) {
+                $userPhoto = $userData->photo_url ?? 
+                            $userData->photo ?? 
+                            $userData->profile_photo ?? 
+                            $userData->avatar ?? 
+                            null;
+                if ($userPhoto && !filter_var($userPhoto, FILTER_VALIDATE_URL)) {
+                    $userPhoto = url($userPhoto);
+                }
+            }
+
+            $formattedReview = [
+                'id' => $review->id,
+                'chef_id' => $review->chef_id,
+                'user_id' => $review->user_id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'created_at' => $review->created_at,
+                'updated_at' => $review->updated_at,
+                'user' => $userData ? [
+                    'id' => $userData->id,
+                    'name' => $userData->name,
+                    'email' => $userData->email,
+                    'photo_url' => $userPhoto,
+                    'photo' => $userPhoto,
+                    'profile_photo' => $userPhoto,
+                    'avatar' => $userPhoto,
+                ] : null,
+            ];
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Review submitted successfully.',
-                'review' => $review,
+                'review' => $formattedReview,
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -362,7 +480,7 @@ class ChefController extends Controller
 
 
     /**
-     * ✅ UPDATE REVIEW - නව method එක
+     * Update review - ✅ FIXED with profile photo
      */
     public function updateReview(Request $request, $reviewId)
     {
@@ -404,12 +522,46 @@ class ChefController extends Controller
                 'comment' => $validated['comment'],
             ]);
 
-            $review->load('user:id,name,photo_url');
+            // ✅ Fix: Load user with all fields
+            $review->load('user');
+
+            // ✅ Fix: Format the review with full photo URL
+            $userData = $review->user;
+            $userPhoto = null;
+            if ($userData) {
+                $userPhoto = $userData->photo_url ?? 
+                            $userData->photo ?? 
+                            $userData->profile_photo ?? 
+                            $userData->avatar ?? 
+                            null;
+                if ($userPhoto && !filter_var($userPhoto, FILTER_VALIDATE_URL)) {
+                    $userPhoto = url($userPhoto);
+                }
+            }
+
+            $formattedReview = [
+                'id' => $review->id,
+                'chef_id' => $review->chef_id,
+                'user_id' => $review->user_id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'created_at' => $review->created_at,
+                'updated_at' => $review->updated_at,
+                'user' => $userData ? [
+                    'id' => $userData->id,
+                    'name' => $userData->name,
+                    'email' => $userData->email,
+                    'photo_url' => $userPhoto,
+                    'photo' => $userPhoto,
+                    'profile_photo' => $userPhoto,
+                    'avatar' => $userPhoto,
+                ] : null,
+            ];
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Review updated successfully.',
-                'review' => $review,
+                'review' => $formattedReview,
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
