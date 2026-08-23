@@ -99,7 +99,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // NORMALIZE REVIEW
+  // NORMALIZE REVIEW - ✅ FIXED with better photo detection
   // =========================================================
 
   const normalizeReview = (review) => {
@@ -161,6 +161,7 @@ export default function ChefDetails() {
         '';
     }
 
+    // ✅ FIX: Better user photo detection
     let userPhoto = null;
     
     if (userObject && typeof userObject === 'object') {
@@ -168,16 +169,28 @@ export default function ChefDetails() {
         userObject.photo_url ??
         userObject.photo ??
         userObject.profile_photo ??
+        userObject.profile_photo_url ??
         userObject.avatar ??
+        userObject.profile ??
+        userObject.image ??
         null;
     }
     
     if (!userPhoto) {
       userPhoto =
         review.user_photo ??
+        review.user_photo_url ??
         review.customer_photo ??
         review.reviewer_photo ??
+        review.photo_url ??
+        review.profile_photo ??
+        review.avatar ??
         null;
+    }
+
+    // If photo exists and doesn't start with http, add URL prefix
+    if (userPhoto && !userPhoto.startsWith('http') && !userPhoto.startsWith('//')) {
+      userPhoto = `${process.env.REACT_APP_API_URL || ''}${userPhoto}`;
     }
 
     return {
@@ -194,12 +207,18 @@ export default function ChefDetails() {
             id: userObject.id ?? userId,
             name: userName || 'Customer',
             photo_url: userPhoto,
+            photo: userPhoto,
+            profile_photo: userPhoto,
+            avatar: userPhoto,
           }
         : userName
         ? {
             id: userId,
             name: userName,
             photo_url: userPhoto,
+            photo: userPhoto,
+            profile_photo: userPhoto,
+            avatar: userPhoto,
           }
         : null,
       
@@ -209,12 +228,18 @@ export default function ChefDetails() {
             id: userObject.id ?? userId,
             name: userName || 'Customer',
             photo_url: userPhoto,
+            photo: userPhoto,
+            profile_photo: userPhoto,
+            avatar: userPhoto,
           }
         : userName
         ? {
             id: userId,
             name: userName,
             photo_url: userPhoto,
+            photo: userPhoto,
+            profile_photo: userPhoto,
+            avatar: userPhoto,
           }
         : null,
       
@@ -227,7 +252,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // NORMALIZE REVIEWS
+  // NORMALIZE REVIEWS - ✅ FIXED
   // =========================================================
 
   const normalizeReviews = (data) => {
@@ -416,7 +441,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // APPLY CHEF RESPONSE
+  // APPLY CHEF RESPONSE - ✅ FIXED
   // =========================================================
 
   const applyChefResponse = (responseData, existingReviews = null) => {
@@ -432,6 +457,7 @@ export default function ChefDetails() {
     if (Array.isArray(existingReviews) && existingReviews.length > 0) {
       reviewData = existingReviews;
     } else {
+      // ✅ Check for reviews in response
       if (Array.isArray(responseData?.reviews)) {
         reviewData = normalizeReviews(responseData.reviews);
       }
@@ -708,11 +734,9 @@ export default function ChefDetails() {
       let response;
 
       if (isEditing && editingReviewId) {
-        // ✅ UPDATE REVIEW
         console.log('UPDATING REVIEW:', payload);
         response = await api.put(`/chef-reviews/${editingReviewId}`, payload);
       } else {
-        // ✅ ADD NEW REVIEW
         console.log('SUBMITTING REVIEW:', payload);
         response = await api.post(`/chefs/${chef.id}/reviews`, payload);
       }
@@ -739,17 +763,14 @@ export default function ChefDetails() {
           });
         }
 
-        // Update reviews list
         setReviews((previousReviews) => {
           let updatedReviews;
 
           if (isEditing) {
-            // Replace the edited review
             updatedReviews = previousReviews.map((review) => 
               review.id === editingReviewId ? updatedReview : review
             );
           } else {
-            // Add new review
             const exists = previousReviews.some((review) => {
               if (updatedReview?.id && review?.id) {
                 return String(review.id) === String(updatedReview.id);
@@ -764,7 +785,6 @@ export default function ChefDetails() {
             updatedReviews = [updatedReview, ...previousReviews];
           }
 
-          // Update rating and count
           const newRating = calculateRatingFromReviews(updatedReviews);
           setAverageRating(newRating);
           setReviewCount(updatedReviews.length);
@@ -851,13 +871,11 @@ export default function ChefDetails() {
       console.log('DELETE RESPONSE:', response.data);
 
       if (response.data?.status === 'success') {
-        // Remove review from list
         setReviews((previousReviews) => {
           const updatedReviews = previousReviews.filter(
             (review) => review.id !== deleteReviewId
           );
           
-          // Update rating and count
           const newRating = calculateRatingFromReviews(updatedReviews);
           setAverageRating(newRating);
           setReviewCount(updatedReviews.length);
@@ -868,7 +886,6 @@ export default function ChefDetails() {
         setShowDeleteModal(false);
         setDeleteReviewId(null);
 
-        // Refresh from backend
         setTimeout(async () => {
           await refreshReviews();
         }, 500);
@@ -1000,22 +1017,6 @@ export default function ChefDetails() {
     if (!reviewUserId) {
       return false;
     }
-
-    return Number(reviewUserId) === Number(user.id);
-  });
-
-  // Get user's review
-  const getUserReview = reviews.find((review) => {
-    if (!user?.id) return false;
-
-    const reviewUserId = 
-      review?.user_id ??
-      review?.customer_id ??
-      review?.user?.id ??
-      review?.customer?.id ??
-      null;
-
-    if (!reviewUserId) return false;
 
     return Number(reviewUserId) === Number(user.id);
   });
@@ -1219,7 +1220,8 @@ export default function ChefDetails() {
                   {hasUserReviewed ? (
                     <>
                       <CheckCircle size={17} />
-                      Review Submitted                    </>
+                      Review Submitted
+                    </>
                   ) : (
                     <>
                       <MessageSquare size={17} />
@@ -1283,7 +1285,6 @@ export default function ChefDetails() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-xs text-blue-600 font-semibold">Your Review</div>
                           <div className="flex items-center gap-2">
-                            {/* ✅ EDIT BUTTON */}
                             <button
                               onClick={() => handleEditReview(review)}
                               className="text-blue-600 hover:text-blue-800 transition p-1"
@@ -1291,7 +1292,6 @@ export default function ChefDetails() {
                             >
                               <Edit size={16} />
                             </button>
-                            {/* ✅ DELETE BUTTON */}
                             <button
                               onClick={() => handleDeleteClick(review.id)}
                               className="text-red-500 hover:text-red-700 transition p-1"
@@ -1396,9 +1396,7 @@ export default function ChefDetails() {
         </div>
       </div>
 
-      {/* =====================================================
-          REVIEW MODAL (Add/Edit)
-      ===================================================== */}
+      {/* REVIEW MODAL (Add/Edit) */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative">
@@ -1518,9 +1516,7 @@ export default function ChefDetails() {
         </div>
       )}
 
-      {/* =====================================================
-          DELETE CONFIRMATION MODAL
-      ===================================================== */}
+      {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl relative">
@@ -1574,9 +1570,7 @@ export default function ChefDetails() {
         </div>
       )}
 
-      {/* =====================================================
-          BOOKING MODAL
-      ===================================================== */}
+      {/* BOOKING MODAL */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
