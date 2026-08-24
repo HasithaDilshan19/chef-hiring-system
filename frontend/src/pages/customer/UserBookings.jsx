@@ -165,6 +165,40 @@ const UserBookings = () => {
                     {booking.status === 'rejected' ? 'Chef declined this request' : 'No further actions required'}
                   </div>
                 )}
+
+                {booking.status === 'cancelled' && (booking.suggested_chef || booking.suggestedChef) && (
+                  (() => {
+                    const suggestedChef = booking.suggested_chef || booking.suggestedChef;
+                    const profile = suggestedChef.chef_profile || suggestedChef.chefProfile;
+                    return (
+                      <div className="mt-4 p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 shadow-md">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">
+                          <ChefHat size={14} className="animate-pulse text-amber-500" />
+                          <span>AI Suggested Replacement Chef</span>
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <h4 className="text-sm font-bold text-white">{suggestedChef.name}</h4>
+                            <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-400">
+                              {profile && (
+                                <>
+                                  <span>★ {parseFloat(profile.rating || 0).toFixed(1)} Rating</span>
+                                  <span className="w-1.5 h-1.5 bg-slate-800 rounded-full"></span>
+                                  <span>{profile.experience_years} Yrs Exp</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="block text-[10px] text-slate-500 uppercase tracking-wider">Contact Details</span>
+                            <span className="block text-xs font-semibold text-slate-200 mt-0.5">{suggestedChef.phone || 'No phone'}</span>
+                            <span className="block text-[10px] text-slate-400">{suggestedChef.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
           ))}

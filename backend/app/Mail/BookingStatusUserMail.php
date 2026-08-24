@@ -21,6 +21,9 @@ class BookingStatusUserMail extends Mailable
     public function __construct($booking)
     {
         $this->booking = $booking;
+        if ($this->booking->suggested_chef_id && !$this->booking->relationLoaded('suggestedChef')) {
+            $this->booking->load(['suggestedChef', 'suggestedChef.chefProfile']);
+        }
     }
 
     /**
