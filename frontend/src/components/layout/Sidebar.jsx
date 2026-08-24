@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings, StarCheckIcon } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings, Utensils } from 'lucide-react';
 
 export default function Sidebar() {
   const { user, isUser, isChef, isAdmin, systemName, systemLogo } = useAuth();
@@ -13,6 +13,7 @@ export default function Sidebar() {
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'My Profile', path: '/profile', icon: UserCircle },
       { name: 'Find Chefs', path: '/search', icon: Users },
+      { name: 'Foodie Packages', path: '/packages', icon: Utensils },
       { name: 'My Bookings', path: '/bookings', icon: CalendarDays },
       
     ];

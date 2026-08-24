@@ -16,6 +16,7 @@ import ChefSearch from './pages/customer/ChefSearch';
 import ChefDetails from './pages/customer/ChefDetails';
 import UserBookings from './pages/customer/UserBookings';
 import UserProfile from './pages/customer/UserProfile';
+import FoodiePackages from './pages/customer/FoodiePackages';
 import Layout from './components/layout/Layout';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
@@ -117,6 +118,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['user']}>
                   <UserBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/packages"
+              element={
+                <ProtectedRoute allowedRoles={['user']}>
+                  <FoodiePackages />
                 </ProtectedRoute>
               }
             />
