@@ -47,6 +47,36 @@
                                 "{{ $booking->cancellation_reason }}"
                             </p>
                         @endif
+
+                        @if($booking->suggestedChef)
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(244, 63, 94, 0.2);">
+                                <h4 style="color: #f59e0b; margin: 0 0 6px 0; font-size: 14px;">💡 AI Suggested Replacement Chef:</h4>
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 12px; margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 4px 0; color: #94a3b8; font-size: 12px; width: 35%;">Suggested Chef:</td>
+                                        <td style="padding: 4px 0; color: #ffffff; font-size: 12px; font-weight: bold;">{{ $booking->suggestedChef->name }}</td>
+                                    </tr>
+                                    @if($booking->suggestedChef->chefProfile)
+                                        <tr>
+                                            <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Experience:</td>
+                                            <td style="padding: 4px 0; color: #ffffff; font-size: 12px;">{{ $booking->suggestedChef->chefProfile->experience_years }} Years</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Rating:</td>
+                                            <td style="padding: 4px 0; color: #f59e0b; font-size: 12px; font-weight: bold;">★ {{ number_format($booking->suggestedChef->chefProfile->rating, 1) }}</td>
+                                        </tr>
+                                    @endif
+                                    <tr>
+                                        <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Phone:</td>
+                                        <td style="padding: 4px 0; color: #38bdf8; font-size: 12px; font-weight: bold;">{{ $booking->suggestedChef->phone ?? 'Contact on dashboard' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Email:</td>
+                                        <td style="padding: 4px 0; color: #ffffff; font-size: 12px;">{{ $booking->suggestedChef->email }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 @else
                     <div style="background-color: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 12px; padding: 16px; margin: 20px 0;">

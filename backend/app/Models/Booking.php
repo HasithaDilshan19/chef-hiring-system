@@ -21,6 +21,7 @@ class Booking extends Model
         'status',
         'total_price',
         'cancellation_reason',
+        'suggested_chef_id',
     ];
 
     protected $casts = [
@@ -43,5 +44,13 @@ class Booking extends Model
     public function chef(): BelongsTo
     {
         return $this->belongsTo(User::class, 'chef_id');
+    }
+
+    /**
+     * Get the suggested replacement chef for the cancelled booking.
+     */
+    public function suggestedChef(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suggested_chef_id');
     }
 }
