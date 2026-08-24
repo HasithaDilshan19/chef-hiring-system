@@ -9,6 +9,8 @@ const ChefBookings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   const fetchBookings = async () => {
     try {
@@ -28,10 +30,16 @@ const ChefBookings = () => {
     fetchBookings();
   }, []);
 
-  const handleBookingAction = async (bookingId, newStatus) => {
+  const handleBookingAction = async (bookingId, newStatus, reason = null) => {
     try {
-      await api.put(`/bookings/${bookingId}/status`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (newStatus === 'cancelled' && reason) {
+        payload.cancellation_reason = reason;
+      }
+      await api.put(`/bookings/${bookingId}/status`, payload);
       setSuccessMsg(`Booking successfully updated to ${newStatus}.`);
+      setCancellingBookingId(null);
+      setCancellationReason('');
       fetchBookings();
       
       // Clear success message after 3 seconds
@@ -168,12 +176,64 @@ const ChefBookings = () => {
                 )}
 
                 {booking.status === 'accepted' && (
-                  <button
-                    onClick={() => handleBookingAction(booking.id, 'completed')}
-                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl cursor-pointer transition-all duration-200 text-sm flex justify-center items-center gap-2 shadow-lg shadow-emerald-500/20"
-                  >
-                    <Check size={16} /> Mark as Completed
-                  </button>
+                  cancellingBookingId === booking.id ? (
+                    <div className="space-y-3 bg-slate-950/60 p-4 rounded-xl border border-rose-500/20">
+                      <label className="block text-xs font-semibold text-rose-400 uppercase tracking-wider">
+                        Reason for Cancellation
+                      </label>
+                      <textarea
+                        value={cancellationReason}
+                        onChange={(e) => setCancellationReason(e.target.value)}
+                        placeholder="Please enter the reason (e.g. medical emergency, double booking)..."
+                        rows="2"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:border-rose-500 resize-none"
+                        required
+                      />
+                      <div className="flex gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancellingBookingId(null);
+                            setCancellationReason('');
+                          }}
+                          className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 rounded-lg cursor-pointer transition-all duration-150 font-semibold text-xs text-center"
+                        >
+                          Go Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!cancellationReason.trim()) {
+                              alert('Please enter a cancellation reason.');
+                              return;
+                            }
+                            handleBookingAction(booking.id, 'cancelled', cancellationReason);
+                          }}
+                          className="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold rounded-lg cursor-pointer transition-all duration-150 text-xs text-center shadow-lg shadow-rose-500/10"
+                        >
+                          Confirm Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setCancellingBookingId(booking.id);
+                          setCancellationReason('');
+                        }}
+                        className="flex-1 py-2.5 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl cursor-pointer transition-all duration-200 font-semibold text-sm flex justify-center items-center gap-2"
+                      >
+                        <X size={16} /> Cancel Gig
+                      </button>
+                      <button
+                        onClick={() => handleBookingAction(booking.id, 'completed')}
+                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl cursor-pointer transition-all duration-200 text-sm flex justify-center items-center gap-2 shadow-lg shadow-emerald-500/20"
+                      >
+                        <Check size={16} /> Complete
+                      </button>
+                    </div>
+                  )
                 )}
                 
                 {['completed', 'cancelled', 'rejected'].includes(booking.status) && (
