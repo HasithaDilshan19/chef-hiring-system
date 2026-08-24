@@ -98,7 +98,8 @@ class BookingController extends Controller
         $user = $request->user();
         
         $validatedData = $request->validate([
-            'status' => 'required|string|in:accepted,rejected,cancelled,completed'
+            'status' => 'required|string|in:accepted,rejected,cancelled,completed',
+            'cancellation_reason' => 'nullable|string|max:1000'
         ]);
 
         $booking = Booking::find($id);
@@ -118,8 +119,12 @@ class BookingController extends Controller
 
         // State machine logic based on role
         if ($user->role === 'chef') {
-            if (!in_array($validatedData['status'], ['accepted', 'rejected', 'completed'])) {
+            if (!in_array($validatedData['status'], ['accepted', 'rejected', 'cancelled', 'completed'])) {
                 return response()->json(['message' => 'Invalid status transition for chef'], 400);
+            }
+
+            if ($validatedData['status'] === 'cancelled' && $booking->status !== 'accepted') {
+                return response()->json(['message' => 'Only accepted bookings can be cancelled by the chef'], 400);
             }
         }
 
@@ -130,6 +135,9 @@ class BookingController extends Controller
         }
 
         $booking->status = $validatedData['status'];
+        if ($validatedData['status'] === 'cancelled') {
+            $booking->cancellation_reason = $validatedData['cancellation_reason'] ?? null;
+        }
         $booking->save();
 
         $booking->load(['customer', 'chef']);

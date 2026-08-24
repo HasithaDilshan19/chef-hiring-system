@@ -20,6 +20,7 @@ class Booking extends Model
         'guests_count',
         'status',
         'total_price',
+        'cancellation_reason',
     ];
 
     protected $casts = [

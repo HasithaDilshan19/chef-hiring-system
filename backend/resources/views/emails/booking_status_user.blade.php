@@ -33,6 +33,21 @@
                             Your event booking with Chef <strong>{{ $booking->chef->name ?? 'Chef' }}</strong> has been marked as completed.
                         </p>
                     </div>
+                @elseif($booking->status === 'cancelled')
+                    <div style="background-color: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 12px; padding: 16px; margin: 20px 0;">
+                        <h3 style="color: #f43f5e; margin: 0 0 6px 0; font-size: 16px;">Booking Status: CANCELLED</h3>
+                        <p style="color: #cbd5e1; font-size: 13px; margin: 0;">
+                            We regret to inform you that your booking with Chef <strong>{{ $booking->chef->name ?? 'Chef' }}</strong> has been cancelled.
+                        </p>
+                        @if(!empty($booking->cancellation_reason))
+                            <p style="color: #f43f5e; font-size: 13px; margin: 8px 0 0 0; font-weight: bold;">
+                                Reason for Cancellation:
+                            </p>
+                            <p style="color: #e2e8f0; font-size: 13px; margin: 4px 0 0 0; font-style: italic; background-color: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 8px; border: 1px solid rgba(244, 63, 94, 0.2);">
+                                "{{ $booking->cancellation_reason }}"
+                            </p>
+                        @endif
+                    </div>
                 @else
                     <div style="background-color: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 12px; padding: 16px; margin: 20px 0;">
                         <h3 style="color: #f43f5e; margin: 0 0 6px 0; font-size: 16px;">Booking Status: {{ strtoupper($booking->status) }}</h3>
