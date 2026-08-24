@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -19,6 +20,7 @@ import {
 
 const UserDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [bookings, setBookings] = useState([]);
   const [recommendedChefs, setRecommendedChefs] = useState([]);
@@ -623,6 +625,15 @@ const UserDashboard = () => {
               </p>
 
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/packages')}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-400 shrink-0"
+            >
+              <ChefHat size={17} />
+              Explore foodie packages
+            </button>
 
             {/* CITY */}
 
