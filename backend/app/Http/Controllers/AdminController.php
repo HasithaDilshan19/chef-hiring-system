@@ -190,4 +190,56 @@ class AdminController extends Controller
             'settings' => $updatedSettings
         ]);
     }
+
+    /**
+     * Get admin-defined platform packages
+     */
+    public function getAdminPackages(Request $request)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $setting = SystemSetting::where('key', 'admin_packages')->first();
+        $packages = $setting ? json_decode($setting->value, true) : [];
+
+        return response()->json([
+            'status'   => 'success',
+            'packages' => is_array($packages) ? $packages : [],
+        ]);
+    }
+
+    /**
+     * Save admin-defined platform packages (full replace)
+     */
+    public function updateAdminPackages(Request $request)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'packages'                  => 'required|array',
+            'packages.*.name'           => 'required|string|max:255',
+            'packages.*.description'    => 'nullable|string|max:1000',
+            'packages.*.price'          => 'nullable|string|max:100',
+            'packages.*.guests_count'   => 'nullable|integer|min:1',
+            'packages.*.duration_hours' => 'nullable|integer|min:1',
+            'packages.*.features'       => 'nullable|array',
+            'packages.*.features.*'     => 'string|max:255',
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'admin_packages'],
+            ['value' => json_encode($request->packages)]
+        );
+
+        return response()->json([
+            'status'   => 'success',
+            'message'  => 'Platform packages updated successfully.',
+            'packages' => $request->packages,
+        ]);
+    }
 }

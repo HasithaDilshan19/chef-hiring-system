@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\ChefProfile;
+use App\Models\ChefPackage;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -144,6 +145,9 @@ class ChefController extends Controller
                 ];
             });
 
+            // Load this chef's packages
+            $chefPackages = ChefPackage::where('chef_id', $chef->id)->latest()->get();
+
             return response()->json([
                 'status' => 'success',
 
@@ -182,6 +186,9 @@ class ChefController extends Controller
                     'rating' => $averageRating,
                     'reviews_count' => $reviews->count(),
                 ],
+
+                // Chef packages
+                'packages' => $chefPackages,
 
                 // ✅ Add reviews to response
                 'reviews' => $formattedReviews,
@@ -636,6 +643,166 @@ class ChefController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to delete review.',
+            ], 500);
+        }
+    }
+
+
+    // =========================================================
+    // CHEF PACKAGES
+    // =========================================================
+
+    /**
+     * Get packages for the authenticated chef
+     */
+    public function getMyPackages(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user || $user->role !== 'chef') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Unauthorized.',
+                ], 403);
+            }
+
+            $packages = ChefPackage::where('chef_id', $user->id)->latest()->get();
+
+            return response()->json([
+                'status'   => 'success',
+                'packages' => $packages,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching chef packages: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch packages.',
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Get packages for a specific chef (public-ish)
+     */
+    public function getChefPackages($chefId)
+    {
+        try {
+            $packages = ChefPackage::where('chef_id', $chefId)->latest()->get();
+
+            return response()->json([
+                'status'   => 'success',
+                'packages' => $packages,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching chef packages: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch packages.',
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Create a new package for the authenticated chef
+     */
+    public function storePackage(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user || $user->role !== 'chef') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Unauthorized.',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'name'           => 'required|string|max:255',
+                'description'    => 'nullable|string|max:1000',
+                'price'          => 'nullable|string|max:100',
+                'guests_count'   => 'nullable|integer|min:1',
+                'duration_hours' => 'nullable|integer|min:1',
+                'features'       => 'nullable|array',
+                'features.*'     => 'string|max:255',
+            ]);
+
+            $package = ChefPackage::create([
+                'chef_id'        => $user->id,
+                'name'           => $validated['name'],
+                'description'    => $validated['description'] ?? null,
+                'price'          => $validated['price'] ?? null,
+                'guests_count'   => $validated['guests_count'] ?? 1,
+                'duration_hours' => $validated['duration_hours'] ?? 2,
+                'features'       => $validated['features'] ?? [],
+            ]);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Package created successfully.',
+                'package' => $package,
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Error creating chef package: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to create package.',
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Delete a package (chef owner only)
+     */
+    public function deletePackage($packageId)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Please login first.',
+                ], 401);
+            }
+
+            $package = ChefPackage::find($packageId);
+
+            if (!$package) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Package not found.',
+                ], 404);
+            }
+
+            if ($package->chef_id !== $user->id && $user->role !== 'admin') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'You are not allowed to delete this package.',
+                ], 403);
+            }
+
+            $package->delete();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Package deleted successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error deleting chef package: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to delete package.',
             ], 500);
         }
     }

@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Edit,
   Trash2,
+  Package,
 } from 'lucide-react';
 
 import api from '../../services/api';
@@ -84,6 +85,13 @@ export default function ChefDetails() {
 
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
+
+  // =========================================================
+  // PACKAGES
+  // =========================================================
+
+  const [chefPackages, setChefPackages] = useState([]);
+  const [adminPackages, setAdminPackages] = useState([]);
 
   // =========================================================
   // GET CHEF PROFILE
@@ -471,6 +479,11 @@ export default function ChefDetails() {
       }
     }
 
+    // Extract chef packages from response
+    if (Array.isArray(responseData?.packages)) {
+      setChefPackages(responseData.packages);
+    }
+
     console.log('====================================');
     console.log('FULL RESPONSE:', responseData);
     console.log('CHEF DATA:', chefData);
@@ -576,6 +589,16 @@ export default function ChefDetails() {
       if (response.data?.status === 'success' || response.data) {
         applyChefResponse(response.data);
         await fetchReviews();
+
+        // Fetch admin packages in parallel
+        try {
+          const adminRes = await api.get('/admin/packages');
+          if (adminRes.data?.status === 'success') {
+            setAdminPackages(adminRes.data.packages || []);
+          }
+        } catch (_) {
+          // Admin packages are optional — fail silently
+        }
       } else {
         setChef(null);
         setReviews([]);
@@ -1186,6 +1209,86 @@ export default function ChefDetails() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">About the Chef</h2>
             <p className="text-gray-600 leading-relaxed">{bio}</p>
           </div>
+
+          {/* PACKAGES SECTION */}
+          {(chefPackages.length > 0 || adminPackages.length > 0) && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Package className="text-amber-500" size={20} />
+                Service Packages
+              </h2>
+              <p className="text-sm text-gray-500 mb-5">Choose a package that suits your occasion.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Chef's own packages */}
+                {chefPackages.map(pkg => (
+                  <div
+                    key={`chef-pkg-${pkg.id}`}
+                    className="relative rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5 flex flex-col gap-2"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                        <Package size={16} />
+                      </span>
+                      <h3 className="font-bold text-gray-900 text-base">{pkg.name}</h3>
+                    </div>
+                    {pkg.description && (
+                      <p className="text-gray-600 text-sm leading-5">{pkg.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-3 text-xs font-semibold text-gray-500 mt-1">
+                      {pkg.price && <span className="text-amber-600 font-bold text-sm">{pkg.price}</span>}
+                      <span className="flex items-center gap-1"><Users size={12} /> Up to {pkg.guests_count} guests</span>
+                      <span className="flex items-center gap-1"><Clock size={12} /> {pkg.duration_hours}h</span>
+                    </div>
+                    {pkg.features && pkg.features.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {pkg.features.map((f, i) => (
+                          <li key={i} className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <CheckCircle size={12} className="text-emerald-500 shrink-0" /> {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+
+                {/* Admin platform packages */}
+                {adminPackages.map((pkg, idx) => (
+                  <div
+                    key={`admin-pkg-${idx}`}
+                    className="relative rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 flex flex-col gap-2"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+                        <Package size={16} />
+                      </span>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-base">{pkg.name}</h3>
+                        <span className="text-[10px] bg-blue-100 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Platform Package</span>
+                      </div>
+                    </div>
+                    {pkg.description && (
+                      <p className="text-gray-600 text-sm leading-5">{pkg.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-3 text-xs font-semibold text-gray-500 mt-1">
+                      {pkg.price && <span className="text-blue-600 font-bold text-sm">{pkg.price}</span>}
+                      {pkg.guests_count && <span className="flex items-center gap-1"><Users size={12} /> Up to {pkg.guests_count} guests</span>}
+                      {pkg.duration_hours && <span className="flex items-center gap-1"><Clock size={12} /> {pkg.duration_hours}h</span>}
+                    </div>
+                    {pkg.features && pkg.features.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {pkg.features.map((f, i) => (
+                          <li key={i} className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <CheckCircle size={12} className="text-emerald-500 shrink-0" /> {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* REVIEWS SECTION */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
