@@ -52,9 +52,21 @@
                         <td style="padding: 8px 0; color: #94a3b8; font-size: 13px;">Event Venue Location:</td>
                         <td style="padding: 8px 0; color: #ffffff; font-size: 13px;">{{ $booking->location }}</td>
                     </tr>
+                    @if($booking->package_name)
                     <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 13px;">Total Price Estimate:</td>
-                        <td style="padding: 8px 0; color: #4ade80; font-size: 15px; font-weight: bold;">LKR {{ number_format($booking->total_price, 2) }}</td>
+                        <td style="padding: 8px 0; color: #94a3b8; font-size: 13px;">Package Selected:</td>
+                        <td style="padding: 8px 0; color: #f59e0b; font-size: 13px; font-weight: bold;">{{ $booking->package_name }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td style="padding: 8px 0; color: #94a3b8; font-size: 13px;">Total Price:</td>
+                        <td style="padding: 8px 0; color: #4ade80; font-size: 16px; font-weight: bold;">
+                            @if($booking->total_price > 0)
+                                LKR {{ number_format(floatval($booking->total_price), 2) }}
+                            @else
+                                To be discussed
+                            @endif
+                        </td>
                     </tr>
                 </table>
 

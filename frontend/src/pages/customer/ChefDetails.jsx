@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 import {
   MapPin,
@@ -92,6 +92,16 @@ export default function ChefDetails() {
 
   const [chefPackages, setChefPackages] = useState([]);
   const [adminPackages, setAdminPackages] = useState([]);
+
+  // =========================================================
+  // READ PACKAGE FROM URL (passed from FoodiePackages → ChefSearch)
+  // =========================================================
+
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const urlPackageId   = urlParams.get('package_id');
+  const urlPackageName = urlParams.get('package_name');
+  const urlGuests      = urlParams.get('guests_count');
 
   // =========================================================
   // GET CHEF PROFILE
