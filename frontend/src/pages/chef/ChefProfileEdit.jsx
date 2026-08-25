@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, AlertCircle, Camera, User, MapPin } from 'lucide-react';
+import { Save, AlertCircle, Camera, User, MapPin, Package, Plus, Trash2, X } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -14,6 +14,24 @@ export default function ChefProfileEdit() {
 
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+
+  // -------------------------------------------------------
+  // PACKAGES STATE
+  // -------------------------------------------------------
+  const [packages, setPackages] = useState([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [showPackageForm, setShowPackageForm] = useState(false);
+  const [packageSaving, setPackageSaving] = useState(false);
+  const [packageError, setPackageError] = useState('');
+  const [featureInput, setFeatureInput] = useState('');
+  const [newPackage, setNewPackage] = useState({
+    name: '',
+    description: '',
+    price: '',
+    guests_count: 2,
+    duration_hours: 3,
+    features: [],
+  });
 
   // -------------------------------------------------------
   // CITY COORDINATES
@@ -90,8 +108,26 @@ export default function ChefProfileEdit() {
   useEffect(() => {
     if (user?.id) {
       fetchProfile();
+      fetchPackages();
     }
   }, [user?.id]);
+
+  // -------------------------------------------------------
+  // FETCH PACKAGES
+  // -------------------------------------------------------
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await api.get('/chef/packages');
+      if (response.data.status === 'success') {
+        setPackages(response.data.packages || []);
+      }
+    } catch (err) {
+      console.error('Failed to load packages', err);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   // -------------------------------------------------------
   // HANDLE CITY CHANGE
@@ -638,6 +674,249 @@ export default function ChefProfileEdit() {
         </div>
 
       </form>
+
+      {/* =========================================================
+          PACKAGES SECTION (outside the profile form)
+      ========================================================= */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Package className="text-amber-400" size={22} />
+              My Service Packages
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">
+              Create packages that customers can see on your profile.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowPackageForm(true); setPackageError(''); }}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl font-bold text-sm transition-colors"
+          >
+            <Plus size={16} /> Add Package
+          </button>
+        </div>
+
+        {/* PACKAGE FORM MODAL */}
+        {showPackageForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">New Package</h3>
+                <button type="button" onClick={() => setShowPackageForm(false)} className="text-slate-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {packageError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm mb-4">
+                  {packageError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Package Name *</label>
+                  <input
+                    type="text"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm"
+                    value={newPackage.name}
+                    onChange={e => setNewPackage(p => ({ ...p, name: e.target.value }))}
+                    placeholder="e.g. Romantic Dinner for Two"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Description</label>
+                  <textarea
+                    rows={2}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm resize-none"
+                    value={newPackage.description}
+                    onChange={e => setNewPackage(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Describe what's included..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Price</label>
+                    <input
+                      type="text"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm"
+                      value={newPackage.price}
+                      onChange={e => setNewPackage(p => ({ ...p, price: e.target.value }))}
+                      placeholder="e.g. LKR 8,000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Guests</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm"
+                      value={newPackage.guests_count}
+                      onChange={e => setNewPackage(p => ({ ...p, guests_count: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Hours</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm"
+                      value={newPackage.duration_hours}
+                      onChange={e => setNewPackage(p => ({ ...p, duration_hours: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Features / Includes</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500 transition-colors text-sm"
+                      value={featureInput}
+                      onChange={e => setFeatureInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const f = featureInput.trim();
+                          if (f && !newPackage.features.includes(f)) {
+                            setNewPackage(p => ({ ...p, features: [...p.features, f] }));
+                            setFeatureInput('');
+                          }
+                        }
+                      }}
+                      placeholder="e.g. Fresh ingredients supplied"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const f = featureInput.trim();
+                        if (f && !newPackage.features.includes(f)) {
+                          setNewPackage(p => ({ ...p, features: [...p.features, f] }));
+                          setFeatureInput('');
+                        }
+                      }}
+                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-medium transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {newPackage.features.map((f, i) => (
+                      <span key={i} className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5">
+                        {f}
+                        <button type="button" onClick={() => setNewPackage(p => ({ ...p, features: p.features.filter((_, fi) => fi !== i) }))} className="text-amber-500 hover:text-amber-300">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowPackageForm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={packageSaving}
+                  onClick={async () => {
+                    if (!newPackage.name.trim()) {
+                      setPackageError('Package name is required.');
+                      return;
+                    }
+                    setPackageSaving(true);
+                    setPackageError('');
+                    try {
+                      const response = await api.post('/chef/packages', newPackage);
+                      if (response.data.status === 'success') {
+                        setPackages(prev => [response.data.package, ...prev]);
+                        setNewPackage({ name: '', description: '', price: '', guests_count: 2, duration_hours: 3, features: [] });
+                        setFeatureInput('');
+                        setShowPackageForm(false);
+                      }
+                    } catch (err) {
+                      setPackageError(err.response?.data?.message || 'Failed to save package.');
+                    } finally {
+                      setPackageSaving(false);
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-colors disabled:opacity-60"
+                >
+                  {packageSaving ? 'Saving...' : 'Save Package'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PACKAGES LIST */}
+        {packagesLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : packages.length === 0 ? (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-10 text-center">
+            <Package className="mx-auto text-slate-600 mb-3" size={36} />
+            <p className="text-slate-400 text-sm">No packages yet. Add your first one above!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {packages.map(pkg => (
+              <div
+                key={pkg.id}
+                className="relative bg-slate-900/60 border border-slate-800 rounded-2xl p-5 hover:border-amber-500/30 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm('Delete this package?')) return;
+                    try {
+                      await api.delete(`/chef/packages/${pkg.id}`);
+                      setPackages(prev => prev.filter(p => p.id !== pkg.id));
+                    } catch (err) {
+                      alert('Failed to delete package.');
+                    }
+                  }}
+                  className="absolute top-4 right-4 text-slate-600 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+
+                <h3 className="text-white font-bold text-base pr-8">{pkg.name}</h3>
+                {pkg.description && (
+                  <p className="text-slate-400 text-sm mt-1 leading-5">{pkg.description}</p>
+                )}
+
+                <div className="flex flex-wrap gap-3 mt-3 text-xs font-semibold text-slate-400">
+                  {pkg.price && (
+                    <span className="text-amber-400 font-bold text-sm">{pkg.price}</span>
+                  )}
+                  <span>👥 Up to {pkg.guests_count} guests</span>
+                  <span>⏱ {pkg.duration_hours}h</span>
+                </div>
+
+                {pkg.features && pkg.features.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {pkg.features.map((f, i) => (
+                      <li key={i} className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <span className="text-emerald-400">✓</span> {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

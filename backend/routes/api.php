@@ -224,4 +224,46 @@ Route::middleware('auth:sanctum')->group(function () {
         '/admin/settings',
         [AdminController::class, 'updateSettings']
     );
+
+    // Admin-defined platform packages
+    Route::get(
+        '/admin/packages',
+        [AdminController::class, 'getAdminPackages']
+    );
+
+    Route::put(
+        '/admin/packages',
+        [AdminController::class, 'updateAdminPackages']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Chef Packages
+    |--------------------------------------------------------------------------
+    */
+
+    // Get my own packages (chef only)
+    Route::get(
+        '/chef/packages',
+        [ChefController::class, 'getMyPackages']
+    );
+
+    // Create a package (chef only)
+    Route::post(
+        '/chef/packages',
+        [ChefController::class, 'storePackage']
+    );
+
+    // Delete a package (chef only)
+    Route::delete(
+        '/chef/packages/{id}',
+        [ChefController::class, 'deletePackage']
+    );
+
+    // Get packages for a specific chef (any authenticated user)
+    Route::get(
+        '/chefs/{id}/packages',
+        [ChefController::class, 'getChefPackages']
+    );
 });
