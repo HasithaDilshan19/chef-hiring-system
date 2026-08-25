@@ -94,6 +94,25 @@ export default function ChefDetails() {
   const [adminPackages, setAdminPackages] = useState([]);
 
   // =========================================================
+  // PACKAGE BOOKING MODAL
+  // =========================================================
+
+  const [showPackageBookingModal, setShowPackageBookingModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(null);
+
+  const [packageBookingForm, setPackageBookingForm] = useState({
+    event_date: '',
+    event_time: '',
+    event_type: '',
+    location: '',
+    guests_count: 1,
+  });
+
+  const [packageBookingLoading, setPackageBookingLoading] = useState(false);
+  const [packageBookingError, setPackageBookingError] = useState('');
+  const [packageBookingSuccess, setPackageBookingSuccess] = useState('');
+
+  // =========================================================
   // READ PACKAGE FROM URL (passed from FoodiePackages → ChefSearch)
   // =========================================================
 
@@ -117,7 +136,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // NORMALIZE REVIEW - ✅ FIXED with better photo detection
+  // NORMALIZE REVIEW
   // =========================================================
 
   const normalizeReview = (review) => {
@@ -179,7 +198,6 @@ export default function ChefDetails() {
         '';
     }
 
-    // ✅ FIX: Better user photo detection
     let userPhoto = null;
     
     if (userObject && typeof userObject === 'object') {
@@ -206,7 +224,6 @@ export default function ChefDetails() {
         null;
     }
 
-    // If photo exists and doesn't start with http, add URL prefix
     if (userPhoto && !userPhoto.startsWith('http') && !userPhoto.startsWith('//')) {
       userPhoto = `${process.env.REACT_APP_API_URL || ''}${userPhoto}`;
     }
@@ -270,7 +287,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // NORMALIZE REVIEWS - ✅ FIXED
+  // NORMALIZE REVIEWS
   // =========================================================
 
   const normalizeReviews = (data) => {
@@ -459,7 +476,7 @@ export default function ChefDetails() {
   };
 
   // =========================================================
-  // APPLY CHEF RESPONSE - ✅ FIXED
+  // APPLY CHEF RESPONSE
   // =========================================================
 
   const applyChefResponse = (responseData, existingReviews = null) => {
@@ -475,7 +492,6 @@ export default function ChefDetails() {
     if (Array.isArray(existingReviews) && existingReviews.length > 0) {
       reviewData = existingReviews;
     } else {
-      // ✅ Check for reviews in response
       if (Array.isArray(responseData?.reviews)) {
         reviewData = normalizeReviews(responseData.reviews);
       }
@@ -641,6 +657,139 @@ export default function ChefDetails() {
       console.error('Error refreshing reviews:', err);
     } finally {
       setReviewsLoading(false);
+    }
+  };
+
+  // =========================================================
+  // OPEN PACKAGE BOOKING MODAL
+  // =========================================================
+
+  const handleOpenPackageBooking = (pkg) => {
+    setSelectedPackage(pkg);
+    setPackageBookingError('');
+    setPackageBookingSuccess('');
+    setPackageBookingForm({
+      event_date: '',
+      event_time: '',
+      event_type: pkg?.name || '',
+      location: '',
+      guests_count: pkg?.guests_count || 1,
+    });
+    setShowPackageBookingModal(true);
+  };
+
+  // =========================================================
+  // CLOSE PACKAGE BOOKING MODAL
+  // =========================================================
+
+  const handleClosePackageBooking = () => {
+    if (packageBookingLoading) return;
+    setShowPackageBookingModal(false);
+    setSelectedPackage(null);
+    setPackageBookingForm({
+      event_date: '',
+      event_time: '',
+      event_type: '',
+      location: '',
+      guests_count: 1,
+    });
+    setPackageBookingError('');
+    setPackageBookingSuccess('');
+  };
+
+  // =========================================================
+  // SUBMIT PACKAGE BOOKING
+  // =========================================================
+
+  const handlePackageBookingSubmit = async (e) => {
+    e.preventDefault();
+
+    setPackageBookingError('');
+    setPackageBookingSuccess('');
+
+    if (!user) {
+      setPackageBookingError('Please login to make a booking.');
+      return;
+    }
+
+    if (!chef?.id) {
+      setPackageBookingError('Chef information is missing.');
+      return;
+    }
+
+    if (!selectedPackage) {
+      setPackageBookingError('Please select a package.');
+      return;
+    }
+
+    if (!packageBookingForm.event_date || !packageBookingForm.event_time) {
+      setPackageBookingError('Please select event date and time.');
+      return;
+    }
+
+    setPackageBookingLoading(true);
+
+    try {
+      const payload = {
+        chef_id: Number(chef.id),
+        package_id: Number(selectedPackage.id),
+        package_name: selectedPackage.name,
+        package_price: selectedPackage.price || '',
+        event_date: packageBookingForm.event_date,
+        event_time: packageBookingForm.event_time,
+        event_type: packageBookingForm.event_type || selectedPackage.name,
+        location: packageBookingForm.location,
+        guests_count: Number(packageBookingForm.guests_count),
+        total_price: selectedPackage.price || '',
+      };
+
+      console.log('PACKAGE BOOKING PAYLOAD:', payload);
+
+      const response = await api.post('/bookings', payload);
+
+      console.log('PACKAGE BOOKING RESPONSE:', response.data);
+
+      if (response.data?.status === 'success') {
+        setPackageBookingSuccess('Booking requested successfully!');
+        
+        setTimeout(() => {
+          setShowPackageBookingModal(false);
+          setSelectedPackage(null);
+          setPackageBookingForm({
+            event_date: '',
+            event_time: '',
+            event_type: '',
+            location: '',
+            guests_count: 1,
+          });
+          setPackageBookingSuccess('');
+          alert('Booking requested successfully!');
+          navigate('/dashboard');
+        }, 1000);
+      } else {
+        setPackageBookingError(response.data?.message || 'Failed to submit booking.');
+      }
+    } catch (err) {
+      console.error('PACKAGE BOOKING ERROR:', err);
+
+      const status = err.response?.status;
+      const responseData = err.response?.data;
+
+      if (status === 422) {
+        const errors = responseData?.errors;
+        if (errors) {
+          const firstError = Object.values(errors)[0];
+          setPackageBookingError(Array.isArray(firstError) ? firstError[0] : String(firstError));
+        } else {
+          setPackageBookingError(responseData?.message || 'Please check your booking details.');
+        }
+      } else if (status === 401) {
+        setPackageBookingError('Please login to make a booking.');
+      } else {
+        setPackageBookingError(responseData?.message || 'Failed to submit booking. Please try again.');
+      }
+    } finally {
+      setPackageBookingLoading(false);
     }
   };
 
@@ -1259,6 +1408,17 @@ export default function ChefDetails() {
                         ))}
                       </ul>
                     )}
+
+                    {/* ✅ BOOK PACKAGE BUTTON */}
+                    {(user?.role === 'customer' || user?.role === 'user') && (
+                      <button
+                        onClick={() => handleOpenPackageBooking(pkg)}
+                        className="mt-3 w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-2"
+                      >
+                        <Calendar size={16} />
+                        Book This Package
+                      </button>
+                    )}
                   </div>
                 ))}
 
@@ -1679,6 +1839,223 @@ export default function ChefDetails() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          PACKAGE BOOKING MODAL
+      ===================================================== */}
+      {showPackageBookingModal && selectedPackage && (
+        <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={handleClosePackageBooking}
+              disabled={packageBookingLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            >
+              <X size={22} />
+            </button>
+
+            <div className="mb-6 pr-8">
+              <div className="flex items-center gap-2">
+                <Package className="text-amber-500" size={24} />
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Book Package
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Book the "{selectedPackage.name}" package for your event.
+              </p>
+            </div>
+
+            {/* Package Details Summary */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-900">{selectedPackage.name}</h3>
+                  {selectedPackage.description && (
+                    <p className="text-sm text-gray-600 mt-1">{selectedPackage.description}</p>
+                  )}
+                </div>
+                {selectedPackage.price && (
+                  <span className="text-amber-600 font-bold text-lg">{selectedPackage.price}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-2">
+                <span className="flex items-center gap-1">
+                  <Users size={14} /> Up to {selectedPackage.guests_count} guests
+                </span>
+                {selectedPackage.duration_hours && (
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} /> {selectedPackage.duration_hours} hours
+                  </span>
+                )}
+              </div>
+              {selectedPackage.features && selectedPackage.features.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedPackage.features.map((f, i) => (
+                    <span key={i} className="text-xs bg-amber-200/50 text-amber-700 px-2 py-0.5 rounded-full">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {packageBookingError && (
+              <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg text-sm mb-4">
+                {packageBookingError}
+              </div>
+            )}
+
+            {packageBookingSuccess && (
+              <div className="bg-green-50 border border-green-100 text-green-600 p-3 rounded-lg text-sm mb-4">
+                {packageBookingSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handlePackageBookingSubmit} className="space-y-4">
+              {/* Event Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Date <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+                  <input
+                    type="date"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-black"
+                    value={packageBookingForm.event_date}
+                    onChange={(e) =>
+                      setPackageBookingForm((prev) => ({
+                        ...prev,
+                        event_date: e.target.value,
+                      }))
+                    }
+                    disabled={packageBookingLoading}
+                  />
+                </div>
+              </div>
+
+              {/* Event Time */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Time <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+                  <input
+                    type="time"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-black"
+                    value={packageBookingForm.event_time}
+                    onChange={(e) =>
+                      setPackageBookingForm((prev) => ({
+                        ...prev,
+                        event_time: e.target.value,
+                      }))
+                    }
+                    disabled={packageBookingLoading}
+                  />
+                </div>
+              </div>
+
+              {/* Event Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Type
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Wedding, Birthday, Party..."
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-black"
+                  value={packageBookingForm.event_type}
+                  onChange={(e) =>
+                    setPackageBookingForm((prev) => ({
+                      ...prev,
+                      event_type: e.target.value,
+                    }))
+                  }
+                  disabled={packageBookingLoading}
+                />
+              </div>
+
+              {/* Location / Venue */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location / Venue <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Where will the event take place?"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-black"
+                  value={packageBookingForm.location}
+                  onChange={(e) =>
+                    setPackageBookingForm((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
+                  disabled={packageBookingLoading}
+                />
+              </div>
+
+              {/* Guests Count */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of Guests <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Users className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-black"
+                    value={packageBookingForm.guests_count}
+                    onChange={(e) =>
+                      setPackageBookingForm((prev) => ({
+                        ...prev,
+                        guests_count: e.target.value,
+                      }))
+                    }
+                    disabled={packageBookingLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleClosePackageBooking}
+                  disabled={packageBookingLoading}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={packageBookingLoading}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {packageBookingLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      Confirm Booking
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

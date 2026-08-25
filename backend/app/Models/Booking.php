@@ -55,4 +55,12 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class, 'suggested_chef_id');
     }
+
+    /**
+     * ✅ Get the package that was booked.
+     */
+    public function package(): BelongsTo
+    {
+        return $this->belongsTo(ChefPackage::class, 'package_id');
+    }
 }

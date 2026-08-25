@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\User;
+use App\Models\ChefPackage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -20,7 +21,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'user') {
+        if ($user->role !== 'user' && $user->role !== 'customer') {
             return response()->json(['message' => 'Unauthorized. Only customers can make bookings.'], 403);
         }
 
@@ -32,7 +33,7 @@ class BookingController extends Controller
             'location'      => 'required|string|max:500',
             'guests_count'  => 'required|integer|min:1',
             'total_price'   => 'nullable',          // accepts numeric or price string
-            'package_id'    => 'nullable|integer',
+            'package_id'    => 'nullable|integer|exists:chef_packages,id',
             'package_name'  => 'nullable|string|max:255',
             'package_price' => 'nullable|string|max:100', // raw price string e.g. "LKR 8k"
         ]);
@@ -41,6 +42,22 @@ class BookingController extends Controller
 
         if (!$chef) {
             return response()->json(['message' => 'Selected user is not a valid chef.'], 400);
+        }
+
+        // If package_id is provided, verify it belongs to the chef
+        if (!empty($validatedData['package_id'])) {
+            $package = ChefPackage::where('id', $validatedData['package_id'])
+                ->where('chef_id', $validatedData['chef_id'])
+                ->first();
+
+            if (!$package) {
+                return response()->json(['message' => 'Package not found or does not belong to this chef.'], 404);
+            }
+
+            // If package_name not provided, use package name from database
+            if (empty($validatedData['package_name'])) {
+                $validatedData['package_name'] = $package->name;
+            }
         }
 
         // Parse price string → float (handles "LKR 8k", "LKR 12,500", "8000", etc.)
@@ -66,7 +83,7 @@ class BookingController extends Controller
         $booking->total_price = $parsedPrice;
         $booking->save();
 
-        $booking->load(['customer', 'chef']);
+        $booking->load(['customer', 'chef', 'package']);
 
         // Send automatic email notification to the chef
         try {
@@ -93,17 +110,25 @@ class BookingController extends Controller
 
         if ($user->role === 'chef') {
             $bookings = Booking::where('chef_id', $user->id)
-                ->with('customer:id,name,email,phone')
+                ->with(['customer:id,name,email,phone', 'package'])
                 ->orderBy('created_at', 'desc')
                 ->get();
-        } else if ($user->role === 'user') {
+        } else if ($user->role === 'user' || $user->role === 'customer') {
             $bookings = Booking::where('customer_id', $user->id)
-                ->with('chef:id,name,email,phone', 'chef.chefProfile', 'suggestedChef:id,name,email,phone', 'suggestedChef.chefProfile')
+                ->with([
+                    'chef:id,name,email,phone',
+                    'chef.chefProfile',
+                    'suggestedChef:id,name,email,phone',
+                    'suggestedChef.chefProfile',
+                    'package'
+                ])
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
             // Admin can see all bookings
-            $bookings = Booking::with('customer', 'chef')->orderBy('created_at', 'desc')->get();
+            $bookings = Booking::with(['customer', 'chef', 'package'])
+                ->orderBy('created_at', 'desc')
+                ->get();
         }
 
         return response()->json([
@@ -135,7 +160,7 @@ class BookingController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if ($user->role === 'user' && $booking->customer_id !== $user->id) {
+        if (($user->role === 'user' || $user->role === 'customer') && $booking->customer_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -150,7 +175,7 @@ class BookingController extends Controller
             }
         }
 
-        if ($user->role === 'user') {
+        if ($user->role === 'user' || $user->role === 'customer') {
             if ($validatedData['status'] !== 'cancelled') {
                 return response()->json(['message' => 'Customers can only cancel bookings'], 400);
             }
@@ -166,7 +191,7 @@ class BookingController extends Controller
             $booking->save();
         }
 
-        $booking->load(['customer', 'chef']);
+        $booking->load(['customer', 'chef', 'package']);
 
         // Send automatic email notification to customer on status change
         try {
@@ -180,6 +205,41 @@ class BookingController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Booking status updated',
+            'booking' => $booking
+        ]);
+    }
+
+    /**
+     * Cancel booking (user can cancel their own booking)
+     */
+    public function cancel(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $booking = Booking::find($id);
+
+        if (!$booking) {
+            return response()->json(['message' => 'Booking not found'], 404);
+        }
+
+        // Only the booking owner can cancel
+        if ($booking->customer_id !== $user->id) {
+            return response()->json(['message' => 'You are not allowed to cancel this booking.'], 403);
+        }
+
+        if ($booking->status === 'cancelled') {
+            return response()->json(['message' => 'Booking is already cancelled.'], 409);
+        }
+
+        $booking->status = 'cancelled';
+        $booking->cancellation_reason = $request->input('cancellation_reason', 'Cancelled by customer');
+        $booking->save();
+
+        $booking->load(['customer', 'chef', 'package']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Booking cancelled successfully.',
             'booking' => $booking
         ]);
     }
