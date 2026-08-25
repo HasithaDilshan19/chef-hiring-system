@@ -25,13 +25,16 @@ class BookingController extends Controller
         }
 
         $validatedData = $request->validate([
-            'chef_id' => 'required|exists:users,id',
-            'event_date' => 'required|date|after_or_equal:today',
-            'event_time' => 'required|string',
-            'event_type' => 'required|string|max:255',
-            'location' => 'required|string|max:500',
-            'guests_count' => 'required|integer|min:1',
-            'total_price' => 'nullable|numeric|min:0'
+            'chef_id'       => 'required|exists:users,id',
+            'event_date'    => 'required|date|after_or_equal:today',
+            'event_time'    => 'required|string',
+            'event_type'    => 'required|string|max:255',
+            'location'      => 'required|string|max:500',
+            'guests_count'  => 'required|integer|min:1',
+            'total_price'   => 'nullable',          // accepts numeric or price string
+            'package_id'    => 'nullable|integer',
+            'package_name'  => 'nullable|string|max:255',
+            'package_price' => 'nullable|string|max:100', // raw price string e.g. "LKR 8k"
         ]);
 
         $chef = User::where('id', $validatedData['chef_id'])->where('role', 'chef')->first();
@@ -40,9 +43,27 @@ class BookingController extends Controller
             return response()->json(['message' => 'Selected user is not a valid chef.'], 400);
         }
 
-        $booking = new Booking($validatedData);
+        // Parse price string → float (handles "LKR 8k", "LKR 12,500", "8000", etc.)
+        $parsedPrice = 0.00;
+        $rawPrice = $validatedData['total_price'] ?? $validatedData['package_price'] ?? null;
+        if ($rawPrice !== null && $rawPrice !== '') {
+            // Remove currency symbol and non-numeric chars except dots and k/K
+            $cleaned = preg_replace('/[^0-9.kKmM]/i', '', str_replace(',', '', (string) $rawPrice));
+            if (preg_match('/([0-9.]+)([kK])/i', $cleaned, $m)) {
+                $parsedPrice = floatval($m[1]) * 1000;
+            } elseif (preg_match('/([0-9.]+)([mM])/i', $cleaned, $m)) {
+                $parsedPrice = floatval($m[1]) * 1000000;
+            } elseif (is_numeric($cleaned)) {
+                $parsedPrice = floatval($cleaned);
+            }
+        }
+
+        // Build booking — exclude package_price (not a DB column)
+        $bookingData = array_diff_key($validatedData, array_flip(['package_price', 'total_price']));
+        $booking = new Booking($bookingData);
         $booking->customer_id = $user->id;
-        $booking->status = 'pending';
+        $booking->status      = 'pending';
+        $booking->total_price = $parsedPrice;
         $booking->save();
 
         $booking->load(['customer', 'chef']);

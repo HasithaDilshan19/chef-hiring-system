@@ -225,16 +225,26 @@ Route::middleware('auth:sanctum')->group(function () {
         [AdminController::class, 'updateSettings']
     );
 
-    // Admin-defined platform packages
-    Route::get(
-        '/admin/packages',
-        [AdminController::class, 'getAdminPackages']
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Platform Packages (Foodie Packages)
+    |--------------------------------------------------------------------------
+    */
 
-    Route::put(
-        '/admin/packages',
-        [AdminController::class, 'updateAdminPackages']
-    );
+    // Public list (any authenticated user — for FoodiePackages page)
+    Route::get('/packages', [AdminController::class, 'getAdminPackages']);
+
+    // Admin-only full list (including inactive)
+    Route::get('/admin/packages', [AdminController::class, 'getAllAdminPackages']);
+
+    // Create
+    Route::post('/admin/packages', [AdminController::class, 'storeAdminPackage']);
+
+    // Update
+    Route::put('/admin/packages/{id}', [AdminController::class, 'updateAdminPackage']);
+
+    // Delete
+    Route::delete('/admin/packages/{id}', [AdminController::class, 'deleteAdminPackage']);
 
 
     /*
@@ -244,26 +254,14 @@ Route::middleware('auth:sanctum')->group(function () {
     */
 
     // Get my own packages (chef only)
-    Route::get(
-        '/chef/packages',
-        [ChefController::class, 'getMyPackages']
-    );
+    Route::get('/chef/packages', [ChefController::class, 'getMyPackages']);
 
     // Create a package (chef only)
-    Route::post(
-        '/chef/packages',
-        [ChefController::class, 'storePackage']
-    );
+    Route::post('/chef/packages', [ChefController::class, 'storePackage']);
 
     // Delete a package (chef only)
-    Route::delete(
-        '/chef/packages/{id}',
-        [ChefController::class, 'deletePackage']
-    );
+    Route::delete('/chef/packages/{id}', [ChefController::class, 'deletePackage']);
 
     // Get packages for a specific chef (any authenticated user)
-    Route::get(
-        '/chefs/{id}/packages',
-        [ChefController::class, 'getChefPackages']
-    );
+    Route::get('/chefs/{id}/packages', [ChefController::class, 'getChefPackages']);
 });

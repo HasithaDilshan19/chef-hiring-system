@@ -8,6 +8,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminPackages from './pages/admin/AdminPackages';
 import ChefDashboard from './pages/chef/ChefDashboard';
 import ChefProfileEdit from './pages/chef/ChefProfileEdit';
 import ChefBookings from './pages/chef/ChefBookings';
@@ -70,6 +71,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/packages"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPackages />
                 </ProtectedRoute>
               }
             />

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\SystemSetting;
+use App\Models\AdminPackage;
 
 class AdminController extends Controller
 {
@@ -192,54 +193,127 @@ class AdminController extends Controller
     }
 
     /**
-     * Get admin-defined platform packages
+     * List all admin packages (public for authenticated users)
      */
     public function getAdminPackages(Request $request)
     {
-        $admin = $request->user();
-        if ($admin->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $setting = SystemSetting::where('key', 'admin_packages')->first();
-        $packages = $setting ? json_decode($setting->value, true) : [];
+        $packages = AdminPackage::where('is_active', true)->orderBy('created_at')->get();
 
         return response()->json([
             'status'   => 'success',
-            'packages' => is_array($packages) ? $packages : [],
+            'packages' => $packages,
         ]);
     }
 
     /**
-     * Save admin-defined platform packages (full replace)
+     * List all admin packages including inactive (admin only)
      */
-    public function updateAdminPackages(Request $request)
+    public function getAllAdminPackages(Request $request)
     {
         $admin = $request->user();
         if ($admin->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
-            'packages'                  => 'required|array',
-            'packages.*.name'           => 'required|string|max:255',
-            'packages.*.description'    => 'nullable|string|max:1000',
-            'packages.*.price'          => 'nullable|string|max:100',
-            'packages.*.guests_count'   => 'nullable|integer|min:1',
-            'packages.*.duration_hours' => 'nullable|integer|min:1',
-            'packages.*.features'       => 'nullable|array',
-            'packages.*.features.*'     => 'string|max:255',
-        ]);
-
-        SystemSetting::updateOrCreate(
-            ['key' => 'admin_packages'],
-            ['value' => json_encode($request->packages)]
-        );
+        $packages = AdminPackage::orderBy('created_at')->get();
 
         return response()->json([
             'status'   => 'success',
-            'message'  => 'Platform packages updated successfully.',
-            'packages' => $request->packages,
+            'packages' => $packages,
+        ]);
+    }
+
+    /**
+     * Create a new admin package
+     */
+    public function storeAdminPackage(Request $request)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'name'           => 'required|string|max:255',
+            'eyebrow'        => 'nullable|string|max:255',
+            'description'    => 'nullable|string|max:1000',
+            'price'          => 'nullable|string|max:100',
+            'guests_count'   => 'nullable|integer|min:1',
+            'duration_hours' => 'nullable|integer|min:1',
+            'features'       => 'nullable|array',
+            'features.*'     => 'string|max:255',
+            'is_featured'    => 'nullable|boolean',
+        ]);
+
+        $package = AdminPackage::create([
+            'name'           => $validated['name'],
+            'eyebrow'        => $validated['eyebrow'] ?? null,
+            'description'    => $validated['description'] ?? null,
+            'price'          => $validated['price'] ?? null,
+            'guests_count'   => $validated['guests_count'] ?? 4,
+            'duration_hours' => $validated['duration_hours'] ?? 3,
+            'features'       => $validated['features'] ?? [],
+            'is_featured'    => $validated['is_featured'] ?? false,
+            'is_active'      => true,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Package created successfully.',
+            'package' => $package,
+        ], 201);
+    }
+
+    /**
+     * Update an admin package
+     */
+    public function updateAdminPackage(Request $request, $id)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $package = AdminPackage::findOrFail($id);
+
+        $validated = $request->validate([
+            'name'           => 'sometimes|required|string|max:255',
+            'eyebrow'        => 'nullable|string|max:255',
+            'description'    => 'nullable|string|max:1000',
+            'price'          => 'nullable|string|max:100',
+            'guests_count'   => 'nullable|integer|min:1',
+            'duration_hours' => 'nullable|integer|min:1',
+            'features'       => 'nullable|array',
+            'features.*'     => 'string|max:255',
+            'is_featured'    => 'nullable|boolean',
+            'is_active'      => 'nullable|boolean',
+        ]);
+
+        $package->update($validated);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Package updated successfully.',
+            'package' => $package,
+        ]);
+    }
+
+    /**
+     * Delete an admin package
+     */
+    public function deleteAdminPackage(Request $request, $id)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $package = AdminPackage::findOrFail($id);
+        $package->delete();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Package deleted successfully.',
         ]);
     }
 }

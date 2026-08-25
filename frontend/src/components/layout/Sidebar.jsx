@@ -28,6 +28,7 @@ export default function Sidebar() {
       { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
       { name: 'Users', path: '/admin/users', icon: Users },
       { name: 'All Bookings', path: '/admin/bookings', icon: CalendarDays },
+      { name: 'Foodie Packages', path: '/admin/packages', icon: Utensils },
       { name: 'Settings', path: '/admin/settings', icon: Settings },
     ];
   }

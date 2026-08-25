@@ -22,6 +22,8 @@ class Booking extends Model
         'total_price',
         'cancellation_reason',
         'suggested_chef_id',
+        'package_id',
+        'package_name',
     ];
 
     protected $casts = [
