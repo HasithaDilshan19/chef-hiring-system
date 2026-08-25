@@ -188,6 +188,12 @@ Route::middleware('auth:sanctum')->group(function () {
         [BookingController::class, 'updateStatus']
     );
 
+    // ✅ Cancel booking (customer only)
+    Route::post(
+        '/bookings/{id}/cancel',
+        [BookingController::class, 'cancel']
+    );
+
 
     /*
     |--------------------------------------------------------------------------

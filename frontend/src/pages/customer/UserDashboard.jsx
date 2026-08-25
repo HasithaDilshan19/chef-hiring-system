@@ -980,10 +980,10 @@ const UserDashboard = () => {
 
                       <div className="flex items-center gap-1 font-mono text-amber-400">
 
-                        <DollarSign
+                        {/* <DollarSign
                           size={14}
                           className="text-amber-500"
-                        />
+                        /> */}
 
                         <span>
                           LKR {hourlyRate.toLocaleString()}/hr
