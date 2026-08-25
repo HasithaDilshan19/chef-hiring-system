@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Users, ChefHat, Calendar, CheckCircle2, ShieldAlert, LogOut } from 'lucide-react';
+import { 
+  Users, 
+  ChefHat, 
+  Calendar, 
+  CheckCircle2, 
+  ShieldAlert, 
+  LogOut,
+  Package,
+  BookOpen,
+  UserCog,
+  PlusCircle
+} from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,12 +41,24 @@ const AdminDashboard = () => {
   const handleChefStatusUpdate = async (id, status) => {
     try {
       await api.put(`/admin/chef/${id}/status`, { status });
-      // Refresh the data to reflect changes
       fetchAdminStats();
     } catch (err) {
       console.error('Failed to update chef status', err);
       setError('Failed to update chef status.');
     }
+  };
+
+  // ✅ Navigation Functions
+  const navigateToUsers = () => {
+    navigate('/admin/users');
+  };
+
+  const navigateToBookings = () => {
+    navigate('/admin/bookings');
+  };
+
+  const navigateToPackages = () => {
+    navigate('/admin/packages');
   };
 
   if (loading) {
@@ -57,13 +82,44 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold text-white mt-2">Control Panel</h1>
           <p className="text-sm text-slate-400">Welcome, {user?.name}</p>
         </div>
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 hover:border-red-500/30 hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer text-sm"
-        >
-          <LogOut size={16} />
-          <span>Sign Out</span>
-        </button>
+        
+        <div className="flex items-center gap-3">
+          {/* ✅ Users Button */}
+          <button
+            onClick={navigateToUsers}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+          >
+            <UserCog size={16} />
+            <span>Users</span>
+          </button>
+
+          {/* ✅ Bookings Button */}
+          <button
+            onClick={navigateToBookings}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+          >
+            <BookOpen size={16} />
+            <span>Bookings</span>
+          </button>
+
+          {/* ✅ Foodie Packages Button */}
+          <button
+            onClick={navigateToPackages}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 text-amber-400 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+          >
+            <Package size={16} />
+            <span>Packages</span>
+          </button>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 hover:border-red-500/30 hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+          >
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -112,6 +168,57 @@ const AdminDashboard = () => {
           </div>
           <div className="p-4 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/10">
             <ShieldAlert size={24} />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Users Card */}
+        <div 
+          onClick={navigateToUsers}
+          className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-2xl hover:bg-blue-500/10 hover:border-blue-500/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400 group-hover:bg-blue-500/20 transition">
+              <UserCog size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Manage Users</h3>
+              <p className="text-sm text-slate-400">View & manage all users</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bookings Card */}
+        <div 
+          onClick={navigateToBookings}
+          className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl hover:bg-emerald-500/10 hover:border-emerald-500/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:bg-emerald-500/20 transition">
+              <BookOpen size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Manage Bookings</h3>
+              <p className="text-sm text-slate-400">View all event bookings</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Packages Card */}
+        <div 
+          onClick={navigateToPackages}
+          className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl hover:bg-amber-500/10 hover:border-amber-500/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 group-hover:bg-amber-500/20 transition">
+              <Package size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Foodie Packages</h3>
+              <p className="text-sm text-slate-400">Manage platform packages</p>
+            </div>
           </div>
         </div>
       </div>
