@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\ChefProfile;
 use App\Models\Booking;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
@@ -293,7 +294,7 @@ class DashboardController extends Controller
         $chefs = $chefsQuery->get();
 
         // Format chefs list and compute distance
-        $recommendedChefs = $chefs->map(function($chef) use ($userLat, $userLng) {
+        $recommendedChefs = $chefs->map(function($chef) use ($userLat, $userLng, $targetCity, $cityCoordinates) {
             $profile = $chef->chefProfile;
             
             if ($profile && $profile->photo_url) {
@@ -302,21 +303,46 @@ class DashboardController extends Controller
             if ($chef->photo_url) {
                 $chef->photo_url = url($chef->photo_url);
             }
-            
-            $chefLat = $profile ? (float)$profile->latitude : $userLat;
-            $chefLng = $profile ? (float)$profile->longitude : $userLng;
 
-            // Haversine formula safely
-            $lat1 = deg2rad($userLat);
-            $lat2 = deg2rad($chefLat);
-            $theta = deg2rad($userLng - $chefLng);
-            $dist = sin($lat1) * sin($lat2) + cos($lat1) * cos($lat2) * cos($theta);
-            $dist = acos(min(max($dist, -1.0), 1.0));
-            $dist = rad2deg($dist);
-            $miles = $dist * 60 * 1.1515;
-            $distanceKm = $miles * 1.609344;
+            $chefCity = $profile->city ?? '';
+            $isSameCity = (strcasecmp(trim($chefCity), trim($targetCity)) === 0);
+
+            if ($isSameCity) {
+                $distanceKm = 0.00;
+            } else {
+                $cityCoords = $cityCoordinates[$chefCity] ?? null;
+                $chefLat = ($profile && (float)$profile->latitude != 0 && (float)$profile->latitude != 6.927179)
+                    ? (float)$profile->latitude
+                    : ($cityCoords ? $cityCoords['lat'] : $userLat);
+                $chefLng = ($profile && (float)$profile->longitude != 0 && (float)$profile->longitude != 79.861244)
+                    ? (float)$profile->longitude
+                    : ($cityCoords ? $cityCoords['lng'] : $userLng);
+
+                $lat1 = deg2rad($userLat);
+                $lat2 = deg2rad($chefLat);
+                $theta = deg2rad($userLng - $chefLng);
+                $dist = sin($lat1) * sin($lat2) + cos($lat1) * cos($lat2) * cos($theta);
+                $dist = acos(min(max($dist, -1.0), 1.0));
+                $dist = rad2deg($dist);
+                $miles = $dist * 60 * 1.1515;
+                $distanceKm = $miles * 1.609344;
+            }
 
             $chef->distance = round($distanceKm, 2);
+            $chef->is_same_city = $isSameCity;
+
+            // Compute real average rating from reviews table
+            $reviews = Review::where('chef_id', $chef->id)->get();
+            $avgRating = $reviews->count() > 0
+                ? round($reviews->avg('rating'), 1)
+                : 0;
+            $chef->reviews_count = $reviews->count();
+
+            // Inject real rating into chef_profile so frontend picks it up
+            if ($profile) {
+                $profile->rating = $avgRating;
+            }
+
             return $chef;
         });
 
@@ -352,11 +378,18 @@ try {
 
         $profile = $chef->chefProfile;
 
+        // Use the real average rating already computed (profile->rating was updated in map above)
+        $realRating = $profile ? (float) ($profile->rating ?? 0) : 0;
+
         return [
 
             'id' => $chef->id,
 
             'name' => $chef->name,
+
+            'city' => $profile ? ($profile->city ?? '') : '',
+
+            'is_same_city' => (bool) ($chef->is_same_city ?? false),
 
             'latitude' => $profile
                 ? (float) $profile->latitude
@@ -374,9 +407,7 @@ try {
                 ? (float) ($profile->experience_years ?? 0)
                 : 0,
 
-            'rating' => $profile
-                ? (float) ($profile->rating ?? 0)
-                : 0,
+            'rating' => $realRating,
 
             'available' => $profile
                 ? $profile->availability_status === 'available'
@@ -395,6 +426,8 @@ try {
             'http://127.0.0.1:5000/recommend',
             [
                 'user' => [
+
+                    'city' => $targetCity,
 
                     'latitude' => $userLat,
 
@@ -419,6 +452,16 @@ try {
 
             $aiRecommendations =
                 $aiData['recommendations'] ?? [];
+
+            // Ensure recommendations sort same-city chefs to top
+            usort($aiRecommendations, function($a, $b) {
+                $aSame = !empty($a['is_same_city']) ? 1 : 0;
+                $bSame = !empty($b['is_same_city']) ? 1 : 0;
+                if ($aSame !== $bSame) {
+                    return $bSame <=> $aSame;
+                }
+                return ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
+            });
 
         }
 

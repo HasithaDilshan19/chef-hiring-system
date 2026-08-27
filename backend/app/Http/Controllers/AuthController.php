@@ -133,6 +133,12 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge([
+                'email' => strtolower(trim((string) $request->email))
+            ]);
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
@@ -149,9 +155,11 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $email = strtolower(trim($request->email));
+
         $user = User::where(
             'email',
-            $request->email
+            $email
         )->first();
 
         if (
@@ -191,7 +199,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if ($user->role !== 'admin' && $user->status !== 'active' && $user->status !== null) {
+        if ($user->role !== 'admin' && !in_array($user->status, ['active', 'accepted', null])) {
             return response()->json([
                 'status' => 'error',
                 'message' =>

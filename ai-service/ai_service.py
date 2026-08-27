@@ -63,6 +63,13 @@ def cuisine_match(user_cuisine, chef_cuisines):
 
 def calculate_recommendation_score(user, chef):
 
+    user_city = normalize(user.get("city"))
+    chef_city = normalize(chef.get("city"))
+    is_same_city = (
+        chef.get("is_same_city", False) or
+        (bool(user_city) and user_city == chef_city)
+    )
+
     # -------------------------------------------------
     # 1. Cuisine - 30%
     # -------------------------------------------------
@@ -77,40 +84,44 @@ def calculate_recommendation_score(user, chef):
     # 2. Location / Distance - 25%
     # -------------------------------------------------
 
-    try:
+    if is_same_city:
+        distance = 0.0
+        location_score = 100
+    else:
+        try:
 
-        user_lat = float(user["latitude"])
-        user_lng = float(user["longitude"])
+            user_lat = float(user["latitude"])
+            user_lng = float(user["longitude"])
 
-        chef_lat = float(chef["latitude"])
-        chef_lng = float(chef["longitude"])
+            chef_lat = float(chef["latitude"])
+            chef_lng = float(chef["longitude"])
 
-        distance = calculate_distance(
-            user_lat,
-            user_lng,
-            chef_lat,
-            chef_lng
-        )
+            distance = calculate_distance(
+                user_lat,
+                user_lng,
+                chef_lat,
+                chef_lng
+            )
 
-        if distance <= 5:
-            location_score = 100
+            if distance <= 5:
+                location_score = 100
 
-        elif distance <= 10:
-            location_score = 85
+            elif distance <= 10:
+                location_score = 85
 
-        elif distance <= 20:
-            location_score = 70
+            elif distance <= 20:
+                location_score = 70
 
-        elif distance <= 30:
-            location_score = 50
+            elif distance <= 30:
+                location_score = 50
 
-        else:
-            location_score = 25
+            else:
+                location_score = 25
 
-    except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError):
 
-        distance = None
-        location_score = 0
+            distance = None
+            location_score = 0
 
 
     # -------------------------------------------------
@@ -176,7 +187,7 @@ def calculate_recommendation_score(user, chef):
     )
 
 
-    return round(final_score, 2), distance
+    return round(final_score, 2), distance, is_same_city
 
 
 @app.route("/recommend", methods=["POST"])
@@ -210,7 +221,7 @@ def recommend():
 
         for chef in chefs:
 
-            score, calculated_distance = (
+            score, calculated_distance, is_same_city = (
                 calculate_recommendation_score(
                     user,
                     chef
@@ -226,10 +237,14 @@ def recommend():
 
                 "score": score,
 
+                "is_same_city": is_same_city,
+
                 "distance_km": (
-                    round(calculated_distance, 2)
-                    if calculated_distance is not None
-                    else chef.get("distance")
+                    0.0 if is_same_city else (
+                        round(calculated_distance, 2)
+                        if calculated_distance is not None
+                        else chef.get("distance", 0)
+                    )
                 ),
 
                 "cuisines": chef.get(
@@ -250,14 +265,19 @@ def recommend():
                 "available": chef.get(
                     "available",
                     False
+                ),
+
+                "suggestion": (
+                    f"Chef {chef.get('name', 'Chef')} is available on Chef!"
+                    if chef.get("available", True)
+                    else f"Chef {chef.get('name', 'Chef')} is currently unavailable on Chef."
                 )
             })
 
 
-        # Highest AI score first
-
+        # Same city chefs come FIRST, then sort by highest AI score
         recommendations.sort(
-            key=lambda item: item["score"],
+            key=lambda item: (item["is_same_city"], item["score"]),
             reverse=True
         )
 
