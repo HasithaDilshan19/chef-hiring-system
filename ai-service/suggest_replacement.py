@@ -196,7 +196,7 @@ def main():
         """, (best_chef_id, args.booking_id))
         conn.commit()
 
-        print(f"Successfully suggested Chef ID {best_chef_id} for Booking ID {args.booking_id} (Score: {scored_chefs[0]['score']})")
+        print(f"Successfully suggested Chef ID {best_chef_id} is available on Chef for Booking ID {args.booking_id} (Score: {scored_chefs[0]['score']})")
 
     except Exception as e:
         print(f"Error suggesting replacement chef: {e}", file=sys.stderr)

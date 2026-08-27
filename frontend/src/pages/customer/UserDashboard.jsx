@@ -229,6 +229,25 @@ const UserDashboard = () => {
           .filter(Boolean);
 
       // --------------------------------------------------
+      // SORT: SAME CITY CHEFS FIRST, THEN HIGHEST AI SCORE
+      // --------------------------------------------------
+
+      finalRecommendations.sort((a, b) => {
+        const targetCityLower = (city || '').toLowerCase();
+        const aCity = (a.chef_profile?.city || a.city || '').toLowerCase();
+        const bCity = (b.chef_profile?.city || b.city || '').toLowerCase();
+
+        const aSame = aCity === targetCityLower ? 1 : 0;
+        const bSame = bCity === targetCityLower ? 1 : 0;
+
+        if (aSame !== bSame) {
+          return bSame - aSame;
+        }
+
+        return (b.ai_score || 0) - (a.ai_score || 0);
+      });
+
+      // --------------------------------------------------
       // FALLBACK
       // --------------------------------------------------
 

@@ -428,6 +428,12 @@ class ChefController extends Controller
                 'comment' => $validated['comment'],
             ]);
 
+            // Update chef_profile.rating with the new real average
+            $newAvg = Review::where('chef_id', $chefId)->avg('rating');
+            ChefProfile::where('user_id', $chefId)->update([
+                'rating' => round($newAvg, 2),
+            ]);
+
             // ✅ Fix: Load user with all fields
             $review->load('user');
 
@@ -531,6 +537,12 @@ class ChefController extends Controller
             $review->update([
                 'rating' => $validated['rating'],
                 'comment' => $validated['comment'],
+            ]);
+
+            // Keep chef_profile.rating in sync with the true average
+            $newAvg = Review::where('chef_id', $review->chef_id)->avg('rating');
+            ChefProfile::where('user_id', $review->chef_id)->update([
+                'rating' => round($newAvg, 2),
             ]);
 
             // ✅ Fix: Load user with all fields
