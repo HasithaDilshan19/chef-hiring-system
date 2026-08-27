@@ -237,7 +237,9 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-slate-300">
-                    {u.role === 'chef' ? u.chef_profile?.city || 'N/A' : 'N/A'}
+                    {u.role === 'chef'
+                      ? (u.chef_profile?.city || u.city || 'N/A')
+                      : (u.city || 'N/A')}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
