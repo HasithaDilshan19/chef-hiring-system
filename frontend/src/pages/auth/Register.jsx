@@ -226,19 +226,20 @@ const Register = () => {
     }
 
     // -------------------------------------------------------
+    // CITY VALIDATION (all roles)
+    // -------------------------------------------------------
+    if (!city) {
+      setError('Please select your city.');
+      return;
+    }
+
+    // -------------------------------------------------------
     // CHEF VALIDATIONS
     // -------------------------------------------------------
     if (role === 'chef') {
       if (specialities.length === 0) {
         setError(
           'Please select at least one cuisine speciality.'
-        );
-        return;
-      }
-
-      if (!city) {
-        setError(
-          'Please select your city.'
         );
         return;
       }
@@ -566,7 +567,7 @@ const Register = () => {
             <div>
 
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                City
+                City <span className="text-amber-400">*</span>
               </label>
 
               <div className="relative">
@@ -581,7 +582,7 @@ const Register = () => {
                     setCity(e.target.value)
                   }
                   className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
-                  required={role === 'chef'}
+                  required
                 >
 
                   <option value="">
