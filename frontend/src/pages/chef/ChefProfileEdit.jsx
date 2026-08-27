@@ -37,26 +37,34 @@ export default function ChefProfileEdit() {
   // CITY COORDINATES
   // -------------------------------------------------------
   const cityCoordinates = {
-    Colombo: {
-      latitude: 6.927179,
-      longitude: 79.861244,
-    },
-    Nugegoda: {
-      latitude: 6.901500,
-      longitude: 79.880000,
-    },
-    Kandy: {
-      latitude: 7.290572,
-      longitude: 80.633728,
-    },
-    Galle: {
-      latitude: 6.053519,
-      longitude: 80.220978,
-    },
-    Negombo: {
-      latitude: 7.208300,
-      longitude: 79.835800,
-    },
+    Colombo: { latitude: 6.927179, longitude: 79.861244 },
+    Nugegoda: { latitude: 6.901500, longitude: 79.880000 },
+    Kandy: { latitude: 7.290572, longitude: 80.633728 },
+    Galle: { latitude: 6.053519, longitude: 80.220978 },
+    Jaffna: { latitude: 9.661498, longitude: 80.012229 },
+    Negombo: { latitude: 7.208300, longitude: 79.835800 },
+    Kurunegala: { latitude: 7.481775, longitude: 80.360886 },
+    Kuliyapitiya: { latitude: 7.469085, longitude: 80.040125 },
+    Anuradhapura: { latitude: 8.311351, longitude: 80.403730 },
+    Polonnaruwa: { latitude: 7.939634, longitude: 81.000305 },
+    Matara: { latitude: 5.954920, longitude: 80.554956 },
+    Hambantota: { latitude: 6.124592, longitude: 81.118525 },
+    Ratnapura: { latitude: 6.682776, longitude: 80.399222 },
+    Badulla: { latitude: 6.993402, longitude: 81.055000 },
+    'Nuwara Eliya': { latitude: 6.949717, longitude: 80.789107 },
+    Batticaloa: { latitude: 7.717013, longitude: 81.692415 },
+    Trincomalee: { latitude: 8.587320, longitude: 81.215212 },
+    Ampara: { latitude: 7.291244, longitude: 81.672439 },
+    Kalutara: { latitude: 6.585390, longitude: 79.960739 },
+    Gampaha: { latitude: 7.087310, longitude: 79.992686 },
+    Kegalle: { latitude: 7.251329, longitude: 80.346429 },
+    Matale: { latitude: 7.467469, longitude: 80.623416 },
+    Puttalam: { latitude: 8.036186, longitude: 79.828292 },
+    Vavuniya: { latitude: 8.754228, longitude: 80.498188 },
+    Mannar: { latitude: 8.981033, longitude: 79.904412 },
+    Kilinochchi: { latitude: 9.380289, longitude: 80.398642 },
+    Mullaitivu: { latitude: 9.267324, longitude: 80.814324 },
+    Monaragala: { latitude: 6.872421, longitude: 81.350727 },
   };
 
   const [formData, setFormData] = useState({
@@ -475,25 +483,11 @@ export default function ChefProfileEdit() {
                 Select City
               </option>
 
-              <option value="Colombo">
-                Colombo
-              </option>
-
-              <option value="Nugegoda">
-                Nugegoda
-              </option>
-
-              <option value="Kandy">
-                Kandy
-              </option>
-
-              <option value="Galle">
-                Galle
-              </option>
-
-              <option value="Negombo">
-                Negombo
-              </option>
+              {Object.keys(cityCoordinates).map((cityName) => (
+                <option key={cityName} value={cityName}>
+                  {cityName}
+                </option>
+              ))}
 
             </select>
 

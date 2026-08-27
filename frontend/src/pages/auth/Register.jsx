@@ -73,6 +73,7 @@ const Register = () => {
   // ---------------------------------------------------------
   const sriLankanCities = [
     'Colombo',
+    'Nugegoda',
     'Kandy',
     'Galle',
     'Jaffna',
@@ -100,6 +101,57 @@ const Register = () => {
     'Mullaitivu',
     'Monaragala'
   ];
+
+  // ---------------------------------------------------------
+  // CITY COORDINATES MAPPING
+  // ---------------------------------------------------------
+  const cityCoordinatesMap = {
+    Colombo: { lat: 6.927179, lng: 79.861244 },
+    Nugegoda: { lat: 6.901500, lng: 79.880000 },
+    Kandy: { lat: 7.290572, lng: 80.633728 },
+    Galle: { lat: 6.053519, lng: 80.220978 },
+    Jaffna: { lat: 9.661498, lng: 80.012229 },
+    Negombo: { lat: 7.208300, lng: 79.835800 },
+    Kurunegala: { lat: 7.481775, lng: 80.360886 },
+    Kuliyapitiya: { lat: 7.469085, lng: 80.040125 },
+    Anuradhapura: { lat: 8.311351, lng: 80.403730 },
+    Polonnaruwa: { lat: 7.939634, lng: 81.000305 },
+    Matara: { lat: 5.954920, lng: 80.554956 },
+    Hambantota: { lat: 6.124592, lng: 81.118525 },
+    Ratnapura: { lat: 6.682776, lng: 80.399222 },
+    Badulla: { lat: 6.993402, lng: 81.055000 },
+    'Nuwara Eliya': { lat: 6.949717, lng: 80.789107 },
+    Batticaloa: { lat: 7.717013, lng: 81.692415 },
+    Trincomalee: { lat: 8.587320, lng: 81.215212 },
+    Ampara: { lat: 7.291244, lng: 81.672439 },
+    Kalutara: { lat: 6.585390, lng: 79.960739 },
+    Gampaha: { lat: 7.087310, lng: 79.992686 },
+    Kegalle: { lat: 7.251329, lng: 80.346429 },
+    Matale: { lat: 7.467469, lng: 80.623416 },
+    Puttalam: { lat: 8.036186, lng: 79.828292 },
+    Vavuniya: { lat: 8.754228, lng: 80.498188 },
+    Mannar: { lat: 8.981033, lng: 79.904412 },
+    Kilinochchi: { lat: 9.380289, lng: 80.398642 },
+    Mullaitivu: { lat: 9.267324, lng: 80.814324 },
+    Monaragala: { lat: 6.872421, lng: 81.350727 }
+  };
+
+  // ---------------------------------------------------------
+  // HANDLE CITY CHANGE
+  // ---------------------------------------------------------
+  const handleCityChange = (e) => {
+    const selectedCity = e.target.value;
+    setCity(selectedCity);
+
+    const coords = cityCoordinatesMap[selectedCity];
+    if (coords) {
+      setLat(coords.lat.toFixed(8));
+      setLng(coords.lng.toFixed(8));
+    } else {
+      setLat('');
+      setLng('');
+    }
+  };
 
   // ---------------------------------------------------------
   // CUISINE TOGGLE
@@ -246,7 +298,7 @@ const Register = () => {
 
       if (!lat || !lng) {
         setError(
-          'Please click "Get My Current Location" and allow location access before registering as a chef.'
+          'Please select a city to determine your location coordinates.'
         );
         return;
       }
@@ -578,9 +630,7 @@ const Register = () => {
 
                 <select
                   value={city}
-                  onChange={(e) =>
-                    setCity(e.target.value)
-                  }
+                  onChange={handleCityChange}
                   className="block w-full pl-10 pr-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
                   required
                 >
