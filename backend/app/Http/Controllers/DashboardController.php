@@ -87,6 +87,10 @@ class DashboardController extends Controller
         $chef->status = $request->status;
         $chef->save();
 
+        if ($request->status === 'rejected') {
+            $chef->tokens()->delete();
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Chef status updated to ' . $request->status,

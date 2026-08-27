@@ -19,6 +19,7 @@ class ChefController extends Controller
     {
         try {
             $chefs = User::where('role', 'chef')
+                ->where('status', 'active')
                 ->with('chefProfile')
                 ->get();
 
@@ -87,6 +88,7 @@ class ChefController extends Controller
         try {
 
             $chef = User::where('role', 'chef')
+                ->where('status', 'active')
                 ->with('chefProfile')
                 ->find($id);
 
@@ -287,6 +289,7 @@ class ChefController extends Controller
         try {
 
             $chef = User::where('role', 'chef')
+                ->where('status', 'active')
                 ->find($chefId);
 
             if (!$chef) {
@@ -392,6 +395,7 @@ class ChefController extends Controller
             }
 
             $chef = User::where('role', 'chef')
+                ->where('status', 'active')
                 ->find($chefId);
 
             if (!$chef) {
@@ -690,6 +694,15 @@ class ChefController extends Controller
     public function getChefPackages($chefId)
     {
         try {
+            $chef = User::where('id', $chefId)->where('role', 'chef')->where('status', 'active')->first();
+
+            if (!$chef) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Chef not found.',
+                ], 404);
+            }
+
             $packages = ChefPackage::where('chef_id', $chefId)->latest()->get();
 
             return response()->json([
