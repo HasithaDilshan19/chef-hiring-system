@@ -13,6 +13,8 @@ import {
   Clock,
   Star,
   Save,
+  Image as ImageIcon,
+  Upload,
 } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -24,6 +26,7 @@ const EMPTY_FORM = {
   duration_hours: 3,
   features: [],
   is_featured: false,
+  image_url: '',
 };
 
 export default function AdminPackages() {
@@ -36,6 +39,8 @@ export default function AdminPackages() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
   const [featureInput, setFeatureInput] = useState('');
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -70,6 +75,8 @@ export default function AdminPackages() {
   const openCreate = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setImageFile(null);
+    setImagePreview('');
     setFeatureInput('');
     setFormError('');
     setShowForm(true);
@@ -89,10 +96,24 @@ export default function AdminPackages() {
       duration_hours: pkg.duration_hours || 3,
       features:       pkg.features || [],
       is_featured:    pkg.is_featured || false,
+      image_url:      pkg.image_url || '',
     });
+    setImageFile(null);
+    setImagePreview(pkg.image_url || '');
     setFeatureInput('');
     setFormError('');
     setShowForm(true);
+  };
+
+  // -------------------------------------------------------
+  // HANDLE FILE SELECT
+  // -------------------------------------------------------
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
   };
 
   // -------------------------------------------------------
@@ -116,13 +137,36 @@ export default function AdminPackages() {
     }
     setFormSaving(true);
     setFormError('');
+
     try {
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('eyebrow', form.eyebrow || '');
+      formData.append('description', form.description || '');
+      formData.append('price', form.price || '');
+      formData.append('guests_count', String(form.guests_count));
+      formData.append('duration_hours', String(form.duration_hours));
+      formData.append('features', JSON.stringify(form.features));
+      formData.append('is_featured', form.is_featured ? '1' : '0');
+
+      if (imageFile) {
+        formData.append('image', imageFile);
+      } else if (form.image_url) {
+        formData.append('image_url', form.image_url);
+      }
+
       let res;
       if (editingId) {
-        res = await api.put(`/admin/packages/${editingId}`, form);
+        formData.append('_method', 'PUT');
+        res = await api.post(`/admin/packages/${editingId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       } else {
-        res = await api.post('/admin/packages', form);
+        res = await api.post('/admin/packages', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
+
       if (res.data.status === 'success') {
         setSuccess(editingId ? 'Package updated!' : 'Package created!');
         setShowForm(false);
@@ -214,77 +258,93 @@ export default function AdminPackages() {
           {packages.map(pkg => (
             <div
               key={pkg.id}
-              className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
+              className={`relative flex flex-col overflow-hidden rounded-2xl border transition-all ${
                 pkg.is_featured
                   ? 'bg-amber-500/5 border-amber-500/40 ring-1 ring-amber-500/20'
                   : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
               } ${!pkg.is_active ? 'opacity-50' : ''}`}
             >
-              {pkg.is_featured && (
-                <span className="absolute top-4 left-4 flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-950">
-                  <Star size={10} /> Featured
-                </span>
-              )}
-              {!pkg.is_active && (
-                <span className="absolute top-4 right-16 rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-400">
-                  Hidden
-                </span>
-              )}
+              {/* IMAGE HEADER IF PRESENT */}
+              {pkg.image_url ? (
+                <div className="h-40 w-full overflow-hidden relative">
+                  <img
+                    src={pkg.image_url}
+                    alt={pkg.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+                </div>
+              ) : null}
 
-              {/* ACTION BUTTONS */}
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => openEdit(pkg)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                  title="Edit"
-                >
-                  <Edit3 size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(pkg.id)}
-                  disabled={deletingId === pkg.id}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                  title="Delete"
-                >
-                  {deletingId === pkg.id
-                    ? <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                    : <Trash2 size={15} />
-                  }
-                </button>
+              <div className="p-6 flex flex-col flex-1 relative">
+                {pkg.is_featured && (
+                  <span className="absolute top-4 left-4 z-10 flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-950">
+                    <Star size={10} /> Featured
+                  </span>
+                )}
+                {!pkg.is_active && (
+                  <span className="absolute top-4 right-16 rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-400">
+                    Hidden
+                  </span>
+                )}
+
+                {/* ACTION BUTTONS */}
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(pkg)}
+                    className="p-1.5 rounded-lg bg-slate-950/70 text-slate-300 hover:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                    title="Edit"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(pkg.id)}
+                    disabled={deletingId === pkg.id}
+                    className="p-1.5 rounded-lg bg-slate-950/70 text-slate-300 hover:text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                    title="Delete"
+                  >
+                    {deletingId === pkg.id
+                      ? <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      : <Trash2 size={15} />
+                    }
+                  </button>
+                </div>
+
+                {/* ICON ONLY IF NO IMAGE */}
+                {!pkg.image_url && (
+                  <div className="w-10 h-10 rounded-xl bg-slate-950/70 flex items-center justify-center text-amber-400 mb-4 mt-2">
+                    <ChefHat size={20} />
+                  </div>
+                )}
+
+                {pkg.eyebrow && (
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">{pkg.eyebrow}</p>
+                )}
+
+                <h3 className="text-lg font-bold text-white pr-16">{pkg.name}</h3>
+
+                {pkg.description && (
+                  <p className="text-slate-400 text-sm mt-2 leading-5 flex-1">{pkg.description}</p>
+                )}
+
+                <div className="flex flex-wrap gap-3 mt-4 text-xs font-semibold text-slate-400 border-t border-slate-800 pt-4">
+                  {pkg.price && <span className="text-amber-400 font-bold text-sm">{pkg.price}</span>}
+                  <span className="flex items-center gap-1"><Users size={12} /> {pkg.guests_count} guests</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> {pkg.duration_hours}h</span>
+                </div>
+
+                {pkg.features && pkg.features.length > 0 && (
+                  <ul className="mt-3 space-y-1.5">
+                    {pkg.features.map((f, i) => (
+                      <li key={i} className="text-xs text-slate-400 flex items-center gap-1.5">
+                        <Check size={11} className="text-emerald-400 shrink-0" /> {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-
-              {/* ICON */}
-              <div className="w-10 h-10 rounded-xl bg-slate-950/70 flex items-center justify-center text-amber-400 mb-4 mt-2">
-                <ChefHat size={20} />
-              </div>
-
-              {pkg.eyebrow && (
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">{pkg.eyebrow}</p>
-              )}
-
-              <h3 className="text-lg font-bold text-white pr-16">{pkg.name}</h3>
-
-              {pkg.description && (
-                <p className="text-slate-400 text-sm mt-2 leading-5 flex-1">{pkg.description}</p>
-              )}
-
-              <div className="flex flex-wrap gap-3 mt-4 text-xs font-semibold text-slate-400 border-t border-slate-800 pt-4">
-                {pkg.price && <span className="text-amber-400 font-bold text-sm">{pkg.price}</span>}
-                <span className="flex items-center gap-1"><Users size={12} /> {pkg.guests_count} guests</span>
-                <span className="flex items-center gap-1"><Clock size={12} /> {pkg.duration_hours}h</span>
-              </div>
-
-              {pkg.features && pkg.features.length > 0 && (
-                <ul className="mt-3 space-y-1.5">
-                  {pkg.features.map((f, i) => (
-                    <li key={i} className="text-xs text-slate-400 flex items-center gap-1.5">
-                      <Check size={11} className="text-emerald-400 shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           ))}
         </div>
@@ -312,6 +372,46 @@ export default function AdminPackages() {
             )}
 
             <div className="space-y-4">
+
+              {/* PACKAGE IMAGE UPLOAD */}
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Package Photo</label>
+                <div className="flex items-center gap-4">
+                  {imagePreview ? (
+                    <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 shrink-0">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreview(''); setForm(p => ({ ...p, image_url: '' })); }}
+                        className="absolute top-1 right-1 bg-slate-950/80 text-red-400 rounded-full p-1 hover:bg-slate-900"
+                        title="Remove photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-xl border border-dashed border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-slate-500 shrink-0">
+                      <ImageIcon size={24} />
+                      <span className="text-[10px] mt-1">No photo</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold cursor-pointer transition-colors border border-slate-700">
+                      <Upload size={14} /> Upload Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-2">
+                      Upload an image preview for this package (JPG, PNG, WebP up to 4MB).
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {/* NAME */}
               <div>

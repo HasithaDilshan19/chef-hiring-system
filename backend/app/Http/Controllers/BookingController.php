@@ -33,30 +33,35 @@ class BookingController extends Controller
             'location'      => 'required|string|max:500',
             'guests_count'  => 'required|integer|min:1',
             'total_price'   => 'nullable',          // accepts numeric or price string
-            'package_id'    => 'nullable|integer|exists:chef_packages,id',
+            'package_id'    => 'nullable|integer',
             'package_name'  => 'nullable|string|max:255',
             'package_price' => 'nullable|string|max:100', // raw price string e.g. "LKR 8k"
         ]);
 
-        $chef = User::where('id', $validatedData['chef_id'])->where('role', 'chef')->first();
+        $chef = User::where('id', $validatedData['chef_id'])->where('role', 'chef')->where('status', 'active')->first();
 
         if (!$chef) {
-            return response()->json(['message' => 'Selected user is not a valid chef.'], 400);
+            return response()->json(['message' => 'Selected chef is not available or inactive.'], 400);
         }
 
-        // If package_id is provided, verify it belongs to the chef
+        // If package_id is provided, verify or populate package_name
         if (!empty($validatedData['package_id'])) {
-            $package = ChefPackage::where('id', $validatedData['package_id'])
+            $chefPackage = ChefPackage::where('id', $validatedData['package_id'])
                 ->where('chef_id', $validatedData['chef_id'])
                 ->first();
 
-            if (!$package) {
-                return response()->json(['message' => 'Package not found or does not belong to this chef.'], 404);
-            }
-
-            // If package_name not provided, use package name from database
-            if (empty($validatedData['package_name'])) {
-                $validatedData['package_name'] = $package->name;
+            if ($chefPackage) {
+                if (empty($validatedData['package_name'])) {
+                    $validatedData['package_name'] = $chefPackage->name;
+                }
+            } else {
+                $adminPackage = \App\Models\AdminPackage::find($validatedData['package_id']);
+                if ($adminPackage) {
+                    if (empty($validatedData['package_name'])) {
+                        $validatedData['package_name'] = $adminPackage->name;
+                    }
+                    $validatedData['package_id'] = null;
+                }
             }
         }
 

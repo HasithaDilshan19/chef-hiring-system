@@ -145,19 +145,32 @@ export default function FoodiePackages() {
                 key={pkg.id}
                 className={`relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-6 transition-transform hover:-translate-y-1 ${accent} ${pkg.is_featured ? 'lg:-translate-y-2 ring-1 ring-amber-400/40' : ''}`}
               >
+                {pkg.image_url && (
+                  <div className="-mx-6 -mt-6 mb-4 h-48 overflow-hidden relative">
+                    <img
+                      src={pkg.image_url}
+                      alt={pkg.name}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                  </div>
+                )}
+
                 {pkg.is_featured && (
-                  <span className="absolute right-5 top-5 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-950">
+                  <span className="absolute right-5 top-5 z-10 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-950 shadow-md">
                     Most popular
                   </span>
                 )}
 
-                {/* ICON */}
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950/70 text-amber-400">
-                  <ChefHat size={22} />
-                </div>
+                {/* ICON (only if no image) */}
+                {!pkg.image_url && (
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950/70 text-amber-400">
+                    <ChefHat size={22} />
+                  </div>
+                )}
 
                 {/* EYEBROW */}
-                <p className="mt-6 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <p className={`${pkg.image_url ? 'mt-1' : 'mt-6'} text-xs font-bold uppercase tracking-wider text-slate-400`}>
                   {pkg.eyebrow || 'Platform Package'}
                 </p>
 

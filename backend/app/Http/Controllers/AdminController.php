@@ -51,6 +51,10 @@ class AdminController extends Controller
         $user->status = $validatedData['status'];
         $user->save();
 
+        if ($validatedData['status'] === 'inactive') {
+            $user->tokens()->delete();
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'User status updated successfully.',
@@ -193,11 +197,23 @@ class AdminController extends Controller
     }
 
     /**
+     * Helper to format package image_url
+     */
+    private function formatPackageUrl($package)
+    {
+        if ($package && $package->image_url && !filter_var($package->image_url, FILTER_VALIDATE_URL)) {
+            $package->image_url = url($package->image_url);
+        }
+        return $package;
+    }
+
+    /**
      * List all admin packages (public for authenticated users)
      */
     public function getAdminPackages(Request $request)
     {
         $packages = AdminPackage::where('is_active', true)->orderBy('created_at')->get();
+        $packages->transform(fn($pkg) => $this->formatPackageUrl($pkg));
 
         return response()->json([
             'status'   => 'success',
@@ -216,6 +232,7 @@ class AdminController extends Controller
         }
 
         $packages = AdminPackage::orderBy('created_at')->get();
+        $packages->transform(fn($pkg) => $this->formatPackageUrl($pkg));
 
         return response()->json([
             'status'   => 'success',
@@ -233,10 +250,20 @@ class AdminController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // Support features sent as JSON string or array (e.g. from FormData)
+        if (is_string($request->input('features'))) {
+            $decoded = json_decode($request->input('features'), true);
+            if (is_array($decoded)) {
+                $request->merge(['features' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'name'           => 'required|string|max:255',
             'eyebrow'        => 'nullable|string|max:255',
             'description'    => 'nullable|string|max:1000',
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'image_url'      => 'nullable|string',
             'price'          => 'nullable|string|max:100',
             'guests_count'   => 'nullable|integer|min:1',
             'duration_hours' => 'nullable|integer|min:1',
@@ -245,22 +272,31 @@ class AdminController extends Controller
             'is_featured'    => 'nullable|boolean',
         ]);
 
+        $imageUrl = $validated['image_url'] ?? null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+            $path = $file->storeAs('admin_packages', $filename, 'public');
+            $imageUrl = '/storage/' . $path;
+        }
+
         $package = AdminPackage::create([
             'name'           => $validated['name'],
             'eyebrow'        => $validated['eyebrow'] ?? null,
             'description'    => $validated['description'] ?? null,
+            'image_url'      => $imageUrl,
             'price'          => $validated['price'] ?? null,
             'guests_count'   => $validated['guests_count'] ?? 4,
             'duration_hours' => $validated['duration_hours'] ?? 3,
             'features'       => $validated['features'] ?? [],
-            'is_featured'    => $validated['is_featured'] ?? false,
+            'is_featured'    => filter_var($validated['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'is_active'      => true,
         ]);
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Package created successfully.',
-            'package' => $package,
+            'package' => $this->formatPackageUrl($package),
         ], 201);
     }
 
@@ -276,10 +312,19 @@ class AdminController extends Controller
 
         $package = AdminPackage::findOrFail($id);
 
+        if (is_string($request->input('features'))) {
+            $decoded = json_decode($request->input('features'), true);
+            if (is_array($decoded)) {
+                $request->merge(['features' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'name'           => 'sometimes|required|string|max:255',
             'eyebrow'        => 'nullable|string|max:255',
             'description'    => 'nullable|string|max:1000',
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'image_url'      => 'nullable|string',
             'price'          => 'nullable|string|max:100',
             'guests_count'   => 'nullable|integer|min:1',
             'duration_hours' => 'nullable|integer|min:1',
@@ -289,12 +334,29 @@ class AdminController extends Controller
             'is_active'      => 'nullable|boolean',
         ]);
 
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+            $path = $file->storeAs('admin_packages', $filename, 'public');
+            $validated['image_url'] = '/storage/' . $path;
+        }
+
+        if (isset($validated['is_featured'])) {
+            $validated['is_featured'] = filter_var($validated['is_featured'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (isset($validated['is_active'])) {
+            $validated['is_active'] = filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        unset($validated['image']);
+
         $package->update($validated);
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Package updated successfully.',
-            'package' => $package,
+            'package' => $this->formatPackageUrl($package),
         ]);
     }
 

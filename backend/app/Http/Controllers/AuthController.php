@@ -183,6 +183,22 @@ class AuthController extends Controller
             ], 403);
         }
 
+        if (in_array($user->status, ['inactive', 'deactivated'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' =>
+                    'Your account has been deactivated. Please contact support.'
+            ], 403);
+        }
+
+        if ($user->role !== 'admin' && $user->status !== 'active' && $user->status !== null) {
+            return response()->json([
+                'status' => 'error',
+                'message' =>
+                    'Your account is not active.'
+            ], 403);
+        }
+
         // Generate token
         $token = $user
             ->createToken('auth_token')

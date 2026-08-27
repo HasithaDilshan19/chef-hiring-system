@@ -13,6 +13,7 @@ class AdminPackage extends Model
         'name',
         'eyebrow',
         'description',
+        'image_url',
         'price',
         'guests_count',
         'duration_hours',

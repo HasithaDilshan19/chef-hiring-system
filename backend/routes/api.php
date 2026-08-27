@@ -59,7 +59,7 @@ Route::post(
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'user.active'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
