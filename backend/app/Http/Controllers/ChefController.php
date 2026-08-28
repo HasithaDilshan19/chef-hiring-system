@@ -235,30 +235,39 @@ class ChefController extends Controller
                 'hourly_rate' => 'nullable|numeric|min:0',
                 'city' => 'nullable|string|max:255',
                 'cuisine_specialities' => 'nullable|array',
+                'availability_status' => 'nullable|string|in:available,busy,unavailable,offline',
+                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             ]);
 
             $profile = ChefProfile::firstOrCreate([
                 'user_id' => $user->id,
             ]);
 
-            $profile->update([
+            $profileData = [
                 'bio' => $validated['bio'] ?? $profile->bio,
-                'experience_years' =>
-                    $validated['experience_years']
-                    ?? $profile->experience_years,
+                'experience_years' => $validated['experience_years'] ?? $profile->experience_years,
+                'hourly_rate' => $validated['hourly_rate'] ?? $profile->hourly_rate,
+                'city' => $validated['city'] ?? $profile->city,
+                'cuisine_specialities' => $validated['cuisine_specialities'] ?? $profile->cuisine_specialities,
+                'availability_status' => $validated['availability_status'] ?? $profile->availability_status,
+            ];
 
-                'hourly_rate' =>
-                    $validated['hourly_rate']
-                    ?? $profile->hourly_rate,
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+                $path = $file->storeAs('chef_photos', $filename, 'public');
+                $photoUrl = '/storage/' . $path;
 
-                'city' =>
-                    $validated['city']
-                    ?? $profile->city,
+                $profileData['photo_url'] = $photoUrl;
+                $user->photo_url = $photoUrl;
+                $user->save();
+            }
 
-                'cuisine_specialities' =>
-                    $validated['cuisine_specialities']
-                    ?? $profile->cuisine_specialities,
-            ]);
+            $profile->update($profileData);
+
+            if ($profile->photo_url) {
+                $profile->photo_url = url($profile->photo_url);
+            }
 
             return response()->json([
                 'status' => 'success',
