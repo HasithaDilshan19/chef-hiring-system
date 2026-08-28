@@ -602,19 +602,20 @@ try {
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
         if ($validator->fails()) {
+            $firstError = collect($validator->errors()->all())->first();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid image',
+                'message' => $firstError ?: 'Invalid image',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         $file = $request->file('photo');
-        $filename = time() . '_' . $file->getClientOriginalName();
+        $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
         $path = $file->storeAs('customer_photos', $filename, 'public');
         
         $user->photo_url = '/storage/' . $path;

@@ -21,21 +21,9 @@ export default function UserProfile() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  // Handle Photo Change Preview
-  const handlePhotoChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-      setPhotoError('');
-      setPhotoSuccess('');
-    }
-  };
-
-  // Upload Photo
-  const handlePhotoUpload = async (e) => {
-    e.preventDefault();
-    if (!photoFile) return;
+  // Upload Photo API Helper
+  const uploadPhotoFile = async (fileToUpload) => {
+    if (!fileToUpload) return;
 
     setPhotoUploading(true);
     setPhotoError('');
@@ -43,7 +31,7 @@ export default function UserProfile() {
     
     try {
       const formData = new FormData();
-      formData.append('photo', photoFile);
+      formData.append('photo', fileToUpload);
       
       const response = await api.post('/user/profile-photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -51,14 +39,34 @@ export default function UserProfile() {
 
       if (response.data.status === 'success') {
         setPhotoSuccess('Profile photo updated successfully!');
-        // Reload after a short delay to update context everywhere
-        setTimeout(() => window.location.reload(), 1500);
+        if (response.data.photo_url) {
+          setPhotoPreview(response.data.photo_url);
+        }
+        setTimeout(() => window.location.reload(), 1000);
       }
     } catch (err) {
       console.error(err);
-      setPhotoError(err.response?.data?.message || 'Failed to upload photo.');
+      setPhotoError(err.response?.data?.message || 'Failed to upload photo. Max size 5MB (jpeg, png, jpg, gif, webp).');
     } finally {
       setPhotoUploading(false);
+    }
+  };
+
+  // Handle Photo Change Preview & Auto Upload
+  const handlePhotoChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      await uploadPhotoFile(file);
+    }
+  };
+
+  // Upload Photo Form Submit
+  const handlePhotoUpload = async (e) => {
+    e.preventDefault();
+    if (photoFile) {
+      await uploadPhotoFile(photoFile);
     }
   };
 
@@ -133,7 +141,7 @@ export default function UserProfile() {
             </div>
 
             <p className="text-sm text-slate-400 text-center mb-6">
-              Upload a recognizable photo of yourself. Max size: 2MB.
+              Upload a recognizable photo of yourself. Formats: JPEG, PNG, JPG, GIF, WEBP (Max 5MB).
             </p>
 
             <button 
