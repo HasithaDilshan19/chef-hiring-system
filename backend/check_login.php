@@ -20,3 +20,14 @@ foreach ($emails as $email) {
     $check = \Illuminate\Support\Facades\Hash::check('password123', $user->password);
     echo "Email: $email | Status: {$user->status} | PwLen: " . strlen($user->password) . " | Match: " . ($check ? 'YES' : 'NO') . "\n";
 }
+
+echo "\n--- ALL USERS IN DB ---\n";
+$all = \App\Models\User::all();
+if ($all->isEmpty()) {
+    echo "No users in database!\n";
+} else {
+    foreach ($all as $u) {
+        echo "ID: {$u->id} | Email: {$u->email} | Role: {$u->role} | Status: {$u->status}\n";
+    }
+}
+

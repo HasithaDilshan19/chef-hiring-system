@@ -81,6 +81,7 @@ export default function ChefDetails() {
     event_type: '',
     location: '',
     guests_count: 1,
+    duration_hours: 1,
   });
 
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -1127,6 +1128,11 @@ export default function ChefDetails() {
     }
 
     try {
+      const chefProfileObj = chef?.chef_profile || chef?.chefProfile || chef?.profile || {};
+      const rate = parseFloat(chefProfileObj.hourly_rate ?? chefProfileObj.hourlyRate ?? 0);
+      const duration = parseFloat(bookingForm.duration_hours || 0);
+      const calculatedTotalPrice = rate * duration;
+
       const payload = {
         chef_id: Number(chef.id),
         event_date: bookingForm.event_date,
@@ -1134,6 +1140,7 @@ export default function ChefDetails() {
         event_type: bookingForm.event_type,
         location: bookingForm.location,
         guests_count: Number(bookingForm.guests_count),
+        total_price: calculatedTotalPrice,
       };
 
       console.log('BOOKING PAYLOAD:', payload);
@@ -1150,6 +1157,7 @@ export default function ChefDetails() {
           event_type: '',
           location: '',
           guests_count: 1,
+          duration_hours: 1,
         });
         setBookingError('');
         alert('Booking requested successfully!');
@@ -2196,7 +2204,49 @@ export default function ChefDetails() {
                 </div>
               </div>
 
-              <div className="mt-8">
+              {/* Duration (Hours) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Duration (Hours)
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                    value={bookingForm.duration_hours}
+                    onChange={(e) =>
+                      setBookingForm((previous) => ({
+                        ...previous,
+                        duration_hours: e.target.value,
+                      }))
+                    }
+                    disabled={bookingLoading}
+                  />
+                </div>
+              </div>
+
+              {/* Total Price Display */}
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mt-4">
+                <div className="flex justify-between items-center text-sm mb-1 text-black">
+                  <span className="text-gray-500">Hourly Rate:</span>
+                  <span className="font-semibold text-gray-800">LKR {parseFloat(hourlyRate || 0).toLocaleString()}/hr</span>
+                </div>
+                <div className="flex justify-between items-center text-sm mb-2 text-black">
+                  <span className="text-gray-500">Duration:</span>
+                  <span className="font-semibold text-gray-800">{bookingForm.duration_hours || 0} Hours</span>
+                </div>
+                <div className="border-t border-gray-150 pt-2 flex justify-between items-center text-black">
+                  <span className="text-gray-900 font-bold">Total Price:</span>
+                  <span className="text-emerald-600 font-bold text-lg">
+                    LKR {(parseFloat(hourlyRate || 0) * parseFloat(bookingForm.duration_hours || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6">
                 <button
                   type="submit"
                   disabled={bookingLoading}
