@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { Calendar, Check, X, ShieldAlert, DollarSign, Users, MapPin, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, Check, X, ShieldAlert, DollarSign, Users, MapPin, Clock, CheckCircle2, Filter } from 'lucide-react';
 import { ToastContainer, useToast } from '../../components/ui/Toast';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const ChefBookings = () => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ✅ Status Filter State
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Cancellation reason panel (inline)
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
@@ -32,7 +36,9 @@ const ChefBookings = () => {
   const fetchBookings = async () => {
     try {
       const response = await api.get('/chef/stats');
-      setBookings(response.data.data.bookings || []);
+      const fetchedBookings = response.data.data.bookings || [];
+      setBookings(fetchedBookings);
+      setFilteredBookings(fetchedBookings);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch bookings.');
@@ -44,6 +50,17 @@ const ChefBookings = () => {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  // ✅ Filter Bookings by Status
+  useEffect(() => {
+    let result = bookings;
+
+    if (statusFilter !== 'all') {
+      result = result.filter(booking => booking.status === statusFilter);
+    }
+
+    setFilteredBookings(result);
+  }, [statusFilter, bookings]);
 
   const closeModal = () => setModal((m) => ({ ...m, open: false }));
 
@@ -125,6 +142,16 @@ const ChefBookings = () => {
     });
   };
 
+  // ✅ Clear filter
+  const clearFilter = () => {
+    setStatusFilter('all');
+  };
+
+  // ✅ Get status count
+  const getStatusCount = (status) => {
+    return bookings.filter(b => b.status === status).length;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-slate-950 text-white">
@@ -160,6 +187,9 @@ const ChefBookings = () => {
           <h1 className="text-3xl font-bold text-white mt-2">Gig Requests</h1>
           <p className="text-sm text-slate-400">View and manage all your upcoming and past event bookings.</p>
         </div>
+        <div className="text-sm text-slate-400 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800">
+          Total: <span className="text-white font-bold">{filteredBookings.length}</span> bookings
+        </div>
       </header>
 
       {error && (
@@ -169,14 +199,55 @@ const ChefBookings = () => {
         </div>
       )}
 
+      {/* ✅ Filter Section */}
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="relative min-w-[200px]">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white appearance-none focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+          >
+            <option value="all">All Statuses ({bookings.length})</option>
+            <option value="pending">Pending ({getStatusCount('pending')})</option>
+            <option value="accepted"> Accepted ({getStatusCount('accepted')})</option>
+            <option value="completed"> Completed ({getStatusCount('completed')})</option>
+            <option value="cancelled"> Cancelled ({getStatusCount('cancelled')})</option>
+            <option value="rejected"> Rejected ({getStatusCount('rejected')})</option>
+          </select>
+        </div>
+
+        {statusFilter !== 'all' && (
+          <button
+            onClick={clearFilter}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition flex items-center gap-2 text-sm"
+          >
+            <X size={16} />
+            Clear Filter
+          </button>
+        )}
+
+        {statusFilter !== 'all' && (
+          <span className="text-sm text-slate-400">
+            Showing {filteredBookings.length} of {bookings.length} bookings
+          </span>
+        )}
+      </div>
+
       <div className="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bookings?.map((booking) => (
+          {filteredBookings.map((booking) => (
             <div
               key={booking.id}
               className={`flex flex-col p-6 rounded-2xl border transition-all ${
                 booking.status === 'pending'
                   ? 'bg-slate-900 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.05)]'
+                  : booking.status === 'accepted'
+                  ? 'bg-slate-900 border-blue-500/20'
+                  : booking.status === 'completed'
+                  ? 'bg-slate-900 border-emerald-500/20'
+                  : booking.status === 'cancelled'
+                  ? 'bg-slate-900 border-rose-500/20'
                   : 'bg-slate-950/80 border-slate-800/80'
               }`}
             >
@@ -313,14 +384,59 @@ const ChefBookings = () => {
             </div>
           ))}
 
-          {bookings?.length === 0 && (
+          {filteredBookings.length === 0 && (
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-500 bg-slate-950/50 rounded-2xl border border-slate-800 border-dashed">
               <Calendar size={48} className="text-slate-700 mb-4" />
-              <p className="text-lg font-medium">No booking requests found.</p>
-              <p className="text-sm mt-1">When customers book you for events, they will appear here.</p>
+              <p className="text-lg font-medium">
+                {statusFilter !== 'all' 
+                  ? `No ${statusFilter} bookings found` 
+                  : 'No booking requests found.'}
+              </p>
+              <p className="text-sm mt-1">
+                {statusFilter !== 'all' 
+                  ? 'Try changing the filter to see all bookings.' 
+                  : 'When customers book you for events, they will appear here.'}
+              </p>
+              {statusFilter !== 'all' && (
+                <button
+                  onClick={clearFilter}
+                  className="mt-4 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-sm transition"
+                >
+                  Show All Bookings
+                </button>
+              )}
             </div>
           )}
         </div>
+      </div>
+
+      {/* ✅ Footer Stats */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
+        <div className="flex flex-wrap gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+            Pending: {getStatusCount('pending')}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            Accepted: {getStatusCount('accepted')}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Completed: {getStatusCount('completed')}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+            Cancelled: {getStatusCount('cancelled')}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+            Rejected: {getStatusCount('rejected')}
+          </span>
+        </div>
+        <span>
+          Showing {filteredBookings.length} of {bookings.length} bookings
+        </span>
       </div>
     </div>
   );
