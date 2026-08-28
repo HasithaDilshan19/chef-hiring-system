@@ -74,7 +74,7 @@ const Login = () => {
         </p>
 
         {/* Quick Autofill Buttons for Testing */}
-        <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl border border-slate-800 w-full max-w-md">
+        {/* <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl border border-slate-800 w-full max-w-md">
           <h3 className="text-sm font-semibold tracking-wider text-amber-400 uppercase mb-3">
             Prototype Quick Access
           </h3>
@@ -101,7 +101,7 @@ const Login = () => {
               <span className="text-amber-500 font-mono">user@chefhiring.lk</span>
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Right Panel: Login Form */}
