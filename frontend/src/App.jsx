@@ -12,6 +12,7 @@ import AdminPackages from './pages/admin/AdminPackages';
 import ChefDashboard from './pages/chef/ChefDashboard';
 import ChefProfileEdit from './pages/chef/ChefProfileEdit';
 import ChefBookings from './pages/chef/ChefBookings';
+import ChefReviews from './pages/chef/ChefReviews';
 import UserDashboard from './pages/customer/UserDashboard';
 import ChefSearch from './pages/customer/ChefSearch';
 import ChefDetails from './pages/customer/ChefDetails';
@@ -103,6 +104,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['chef']}>
                   <ChefBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chef/reviews"
+              element={
+                <ProtectedRoute allowedRoles={['chef']}>
+                  <ChefReviews />
                 </ProtectedRoute>
               }
             />

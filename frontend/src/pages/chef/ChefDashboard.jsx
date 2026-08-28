@@ -223,7 +223,12 @@ const ChefDashboard = () => {
         <div className="p-6 bg-slate-900/60 rounded-2xl border border-slate-800 flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-400">Average Rating</p>
-            <h3 className="text-3xl font-bold mt-1 text-amber-400">★ {stats?.rating || '5.0'}</h3>
+            <h3 className="text-3xl font-bold mt-1 text-amber-400">
+              ★ {stats?.reviews_count > 0 ? Number(stats?.rating ?? 0).toFixed(1) : (stats?.rating !== undefined && stats?.rating !== null ? Number(stats.rating).toFixed(1) : '0.0')}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {stats?.reviews_count > 0 ? `${stats.reviews_count} ${stats.reviews_count === 1 ? 'review' : 'reviews'}` : 'No reviews received yet'}
+            </p>
           </div>
           <div className="p-4 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/10">
             <ChefHat size={24} />

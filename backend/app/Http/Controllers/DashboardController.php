@@ -122,12 +122,25 @@ class DashboardController extends Controller
 
         $bookings = Booking::where('chef_id', $user->id)->with('customer')->latest()->get();
 
+        // Calculate real average rating from chef_reviews table
+        $reviews = Review::where('chef_id', $user->id)->get();
+        $avgRating = $reviews->count() > 0
+            ? round($reviews->avg('rating'), 1)
+            : 0;
+
+        // Keep chef_profile.rating in sync with real average
+        if ((float)$profile->rating !== (float)round($avgRating, 2)) {
+            $profile->rating = round($avgRating, 2);
+            $profile->save();
+        }
+
         $stats = [
             'total_bookings' => $bookings->count(),
             'pending_bookings' => $bookings->where('status', 'pending')->count(),
             'accepted_bookings' => $bookings->where('status', 'accepted')->count(),
             'completed_bookings' => $bookings->where('status', 'completed')->count(),
-            'rating' => (float)$profile->rating,
+            'rating' => (float)$avgRating,
+            'reviews_count' => $reviews->count(),
             'reliability' => (float)$profile->reliability_score,
         ];
 
