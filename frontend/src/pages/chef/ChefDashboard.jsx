@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { ChefHat, ToggleLeft, ToggleRight, DollarSign, Calendar, Star, FileText, Check, X, ShieldAlert, LogOut, Camera, User } from 'lucide-react';
+import { ChefHat, Calendar, Star, Check, X, ShieldAlert, Camera, User, Clock, MapPin, Users, AlertCircle } from 'lucide-react';
+import { ToastContainer, useToast } from '../../components/ui/Toast';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const ChefDashboard = () => {
   const { user, logout } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { toasts, showToast, dismissToast } = useToast();
+  const [modal, setModal] = useState({ open: false });
+  const [actionLoading, setActionLoading] = useState(false);
+  const closeModal = () => setModal((m) => ({ ...m, open: false }));
   
   // Profile form state
   const [experience, setExperience] = useState('');
@@ -68,6 +74,50 @@ const ChefDashboard = () => {
       setPhotoFile(file);
       setPhotoPreview(URL.createObjectURL(file));
     }
+  };
+
+  const executeBookingAction = async (bookingId, action) => {
+    setActionLoading(true);
+    closeModal();
+    try {
+      await api.put(`/bookings/${bookingId}/status`, { status: action });
+      fetchChefStats();
+      const msgs = {
+        accepted:  { msg: '🎉 Booking accepted! The customer will be notified.',  type: 'success' },
+        cancelled: { msg: '❌ Booking declined. The customer has been notified.', type: 'warning' },
+      };
+      const { msg, type } = msgs[action] || { msg: `Booking updated to ${action}.`, type: 'info' };
+      showToast(msg, type);
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || 'Failed to update booking.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAccept = (booking) => {
+    setModal({
+      open: true,
+      title: 'Accept This Booking?',
+      message: `You are about to accept the "${booking.event_type}" gig from ${booking.customer?.name}. The customer will be notified immediately.`,
+      confirmText: 'Yes, Accept',
+      cancelText: 'No, Go Back',
+      variant: 'success',
+      onConfirm: () => executeBookingAction(booking.id, 'accepted'),
+    });
+  };
+
+  const handleDecline = (booking) => {
+    setModal({
+      open: true,
+      title: 'Decline This Booking?',
+      message: `Are you sure you want to decline the "${booking.event_type}" request from ${booking.customer?.name}? This action cannot be undone.`,
+      confirmText: 'Yes, Decline',
+      cancelText: 'No, Go Back',
+      variant: 'danger',
+      onConfirm: () => executeBookingAction(booking.id, 'cancelled'),
+    });
   };
 
   const handleToggleAvailability = async (newStatus) => {
@@ -146,10 +196,27 @@ const ChefDashboard = () => {
     );
   }
 
-  const { stats } = data || {};
+  const { stats, bookings } = data || {};
+  const pendingBookings = (bookings || []).filter(b => b.status === 'pending');
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        open={modal.open}
+        title={modal.title}
+        message={modal.message}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
+        variant={modal.variant}
+        loading={actionLoading}
+        onConfirm={modal.onConfirm}
+        onCancel={closeModal}
+      />
+
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 mb-8 border-b border-slate-800">
         <div className="flex items-center gap-4">
@@ -244,6 +311,96 @@ const ChefDashboard = () => {
             <Check size={24} />
           </div>
         </div>
+      </div>
+
+      {/* Pending Bookings Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Clock size={20} className="text-amber-400" />
+            Pending Booking Requests
+            {pendingBookings.length > 0 && (
+              <span className="ml-2 px-2.5 py-0.5 bg-rose-500/20 text-rose-400 text-xs font-bold rounded-full border border-rose-500/30">
+                {pendingBookings.length}
+              </span>
+            )}
+          </h2>
+        </div>
+
+        {pendingBookings.length === 0 ? (
+          <div className="p-8 bg-slate-900/40 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center">
+            <div className="p-4 bg-slate-800/60 rounded-full mb-3">
+              <Calendar size={28} className="text-slate-500" />
+            </div>
+            <p className="text-slate-400 font-medium">No pending booking requests</p>
+            <p className="text-slate-600 text-sm mt-1">New requests from customers will appear here</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {pendingBookings.map((booking) => (
+              <div key={booking.id} className="p-5 bg-slate-900/60 rounded-2xl border border-amber-500/20 hover:border-amber-500/40 transition-all duration-200">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                      <User size={18} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">{booking.customer?.name || 'Customer'}</p>
+                      <p className="text-xs text-slate-500">{booking.customer?.email}</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] font-bold rounded-full border border-amber-500/20 uppercase tracking-wide">
+                    Pending
+                  </span>
+                </div>
+
+                {/* Event Details */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <ChefHat size={14} className="text-amber-400 shrink-0" />
+                    <span className="text-slate-200 font-medium">{booking.event_type}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <Calendar size={13} className="text-slate-500 shrink-0" />
+                    <span>{booking.event_date} at {booking.event_time}</span>
+                  </div>
+                  {booking.location && (
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <MapPin size={13} className="text-slate-500 shrink-0" />
+                      <span className="truncate">{booking.location}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <Users size={13} className="text-slate-500 shrink-0" />
+                    <span>{booking.guests_count} guests</span>
+                    {booking.total_price && (
+                      <span className="ml-auto text-emerald-400 font-semibold">LKR {Number(booking.total_price).toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() => handleDecline(booking)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                  >
+                    <X size={14} />
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => handleAccept(booking)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  >
+                    <Check size={14} />
+                    Accept
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-4xl mx-auto">
