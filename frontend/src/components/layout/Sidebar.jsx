@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings, Utensils } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, UserCircle, ChefHat, Settings, Utensils, Star } from 'lucide-react';
 
 export default function Sidebar() {
   const { user, isUser, isChef, isAdmin, systemName, systemLogo } = useAuth();
@@ -22,6 +22,7 @@ export default function Sidebar() {
       { name: 'Dashboard', path: '/chef', icon: LayoutDashboard },
       { name: 'My Profile', path: '/chef/profile/edit', icon: UserCircle },
       { name: 'Bookings', path: '/chef/bookings', icon: CalendarDays },
+      { name: 'Reviews', path: '/chef/reviews', icon: Star },
     ];
   } else if (isAdmin()) {
     links = [

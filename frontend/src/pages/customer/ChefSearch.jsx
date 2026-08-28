@@ -270,9 +270,21 @@ export default function ChefSearch() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
-                  <div className="flex items-center text-amber-500 font-medium">
-                    <Star className="h-4 w-4 fill-current mr-1" />
-                    {chef.chef_profile?.rating || 'New'}
+                  <div className="flex items-center text-amber-500 font-medium text-sm">
+                    <Star className="h-4 w-4 fill-current mr-1 text-amber-400" />
+                    {(() => {
+                      const r = Number(chef.rating ?? chef.chef_profile?.rating ?? 0);
+                      const count = Number(chef.reviews_count ?? chef.chef_profile?.reviews_count ?? 0);
+                      if (count > 0 && r > 0) {
+                        return (
+                          <>
+                            <span className="font-bold text-amber-400">{r.toFixed(1)}</span>
+                            <span className="text-slate-400 text-xs font-normal ml-1">({count} {count === 1 ? 'review' : 'reviews'})</span>
+                          </>
+                        );
+                      }
+                      return <span className="text-slate-400 text-xs font-medium">New (No ratings)</span>;
+                    })()}
                   </div>
                   <span className="text-slate-700">•</span>
                   <span className="text-slate-300 font-medium">

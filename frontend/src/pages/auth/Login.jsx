@@ -74,34 +74,37 @@ const Login = () => {
         </p>
 
         {/* Quick Autofill Buttons for Testing */}
-        {/* <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl border border-slate-800 w-full max-w-md">
+        <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl border border-slate-800 w-full max-w-md">
           <h3 className="text-sm font-semibold tracking-wider text-amber-400 uppercase mb-3">
-            Prototype Quick Access
+            Quick Access Demo Accounts
           </h3>
           <div className="grid grid-cols-1 gap-2">
             <button
+              type="button"
               onClick={() => handleQuickLogin('admin@chefhiring.lk')}
-              className="flex justify-between items-center px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-lg text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200"
+              className="flex justify-between items-center px-4 py-2.5 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-xl text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200 cursor-pointer"
             >
               <span>Login as Admin</span>
-              <span className="text-amber-500 font-mono">admin@chefhiring.lk</span>
+              <span className="text-amber-400 font-mono">admin@chefhiring.lk</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickLogin('chef@chefhiring.lk')}
-              className="flex justify-between items-center px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-lg text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200"
+              className="flex justify-between items-center px-4 py-2.5 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-xl text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200 cursor-pointer"
             >
               <span>Login as Chef (Kamal)</span>
-              <span className="text-amber-500 font-mono">chef@chefhiring.lk</span>
+              <span className="text-amber-400 font-mono">chef@chefhiring.lk</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickLogin('user@chefhiring.lk')}
-              className="flex justify-between items-center px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-lg text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200"
+              className="flex justify-between items-center px-4 py-2.5 bg-slate-800/80 hover:bg-slate-800 text-left text-xs font-medium rounded-xl text-slate-300 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-200 cursor-pointer"
             >
               <span>Login as Customer (Hasitha)</span>
-              <span className="text-amber-500 font-mono">user@chefhiring.lk</span>
+              <span className="text-amber-400 font-mono">user@chefhiring.lk</span>
             </button>
           </div>
-        </div> */}
+        </div>
       </div>
 
       {/* Right Panel: Login Form */}

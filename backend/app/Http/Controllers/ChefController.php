@@ -642,7 +642,14 @@ class ChefController extends Controller
                 ], 403);
             }
 
+            $chefId = $review->chef_id;
             $review->delete();
+
+            // Update chef_profile.rating with the new real average
+            $newAvg = Review::where('chef_id', $chefId)->avg('rating');
+            ChefProfile::where('user_id', $chefId)->update([
+                'rating' => $newAvg ? round($newAvg, 2) : 0,
+            ]);
 
             return response()->json([
                 'status' => 'success',
