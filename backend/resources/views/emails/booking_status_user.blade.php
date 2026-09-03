@@ -21,7 +21,7 @@
 
                 @if($booking->status === 'accepted')
                     <div style="background-color: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; padding: 16px; margin: 20px 0;">
-                        <h3 style="color: #4ade80; margin: 0 0 6px 0; font-size: 16px;">🎉 Your Booking has been APPROVED!</h3>
+                        <h3 style="color: #4ade80; margin: 0 0 6px 0; font-size: 16px;"> Your Booking has been APPROVED!</h3>
                         <p style="color: #cbd5e1; font-size: 13px; margin: 0;">
                             Great news! Chef <strong>{{ $booking->chef->name ?? 'Chef' }}</strong> has officially confirmed and approved your booking request.
                         </p>
