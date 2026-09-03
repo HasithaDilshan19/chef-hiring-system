@@ -13,7 +13,7 @@ const ChefBookings = () => {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  // ✅ Status Filter State
+  //  Status Filter State
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Cancellation reason panel (inline)
@@ -51,7 +51,7 @@ const ChefBookings = () => {
     fetchBookings();
   }, []);
 
-  // ✅ Filter Bookings by Status
+  //  Filter Bookings by Status
   useEffect(() => {
     let result = bookings;
 
@@ -142,12 +142,12 @@ const ChefBookings = () => {
     });
   };
 
-  // ✅ Clear filter
+  //  Clear filter
   const clearFilter = () => {
     setStatusFilter('all');
   };
 
-  // ✅ Get status count
+  //  Get status count
   const getStatusCount = (status) => {
     return bookings.filter(b => b.status === status).length;
   };
@@ -199,7 +199,7 @@ const ChefBookings = () => {
         </div>
       )}
 
-      {/* ✅ Filter Section */}
+      {/*  Filter Section */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="relative min-w-[200px]">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -410,7 +410,7 @@ const ChefBookings = () => {
         </div>
       </div>
 
-      {/* ✅ Footer Stats */}
+      {/*  Footer Stats */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
         <div className="flex flex-wrap gap-4">
           <span className="flex items-center gap-1.5">

@@ -23,7 +23,7 @@ export default function AdminBookings() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // ✅ Filter States
+  //  Filter States
   const [statusFilter, setStatusFilter] = useState('all');
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
 
@@ -59,7 +59,7 @@ export default function AdminBookings() {
     fetchBookings();
   }, []);
 
-  // ✅ Filter Bookings
+  //  Filter Bookings
   useEffect(() => {
     let result = bookings;
 
@@ -78,19 +78,19 @@ export default function AdminBookings() {
     setFilteredBookings(result);
   }, [statusFilter, eventTypeFilter, bookings]);
 
-  // ✅ Get unique event types
+  //  Get unique event types
   const getUniqueEventTypes = () => {
     const types = bookings.map(booking => booking.event_type).filter(Boolean);
     return [...new Set(types)];
   };
 
-  // ✅ Clear filters
+  //  Clear filters
   const clearFilters = () => {
     setStatusFilter('all');
     setEventTypeFilter('all');
   };
 
-  // ✅ Get status color
+  //  Get status color
   const getStatusColor = (status) => {
     switch(status) {
       case 'pending': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
@@ -140,7 +140,7 @@ export default function AdminBookings() {
         </div>
       )}
 
-      {/* ✅ Search & Filter Section */}
+      {/*  Search & Filter Section */}
       <div className="mb-6 flex flex-col md:flex-row gap-4">
         {/* Status Filter Dropdown */}
         <div className="relative min-w-[180px]">
@@ -187,7 +187,7 @@ export default function AdminBookings() {
         )}
       </div>
 
-      {/* ✅ Filter Info */}
+      {/*  Filter Info */}
       {(statusFilter !== 'all' || eventTypeFilter !== 'all') && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-400">
           <span>Filters applied:</span>
@@ -300,7 +300,7 @@ export default function AdminBookings() {
         </div>
       </div>
 
-      {/* ✅ Bookings Count Footer */}
+      {/*  Bookings Count Footer */}
       <div className="mt-4 text-sm text-slate-500 text-right">
         Showing {filteredBookings.length} of {bookings.length} bookings
       </div>
