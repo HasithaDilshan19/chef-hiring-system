@@ -1417,7 +1417,7 @@ export default function ChefDetails() {
                       </ul>
                     )}
 
-                    {/* ✅ BOOK PACKAGE BUTTON */}
+                    {/*  BOOK PACKAGE BUTTON */}
                     {(user?.role === 'customer' || user?.role === 'user') && (
                       <button
                         onClick={() => handleOpenPackageBooking(pkg)}

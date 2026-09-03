@@ -34,7 +34,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // ✅ Chef Details Popup State
+  //  Chef Details Popup State
   const [selectedChef, setSelectedChef] = useState(null);
   const [showChefPopup, setShowChefPopup] = useState(false);
   const [popupLoading, setPopupLoading] = useState(false);
@@ -67,7 +67,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Open Chef Details Popup
+  //  Open Chef Details Popup
   const handleChefClick = async (chef) => {
     setPopupLoading(true);
     setSelectedChef(chef);
@@ -90,13 +90,13 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Close Popup
+  //  Close Popup
   const closeChefPopup = () => {
     setShowChefPopup(false);
     setSelectedChef(null);
   };
 
-  // ✅ Navigation Functions
+  //  Navigation Functions
   const navigateToUsers = () => {
     navigate('/admin/users');
   };

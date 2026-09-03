@@ -9,7 +9,7 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // ✅ Filter States
+  //  Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
@@ -31,7 +31,7 @@ export default function AdminUsers() {
     fetchUsers();
   }, []);
 
-  // ✅ Filter Users
+  //  Filter Users
   useEffect(() => {
     let result = users;
 
@@ -78,13 +78,13 @@ export default function AdminUsers() {
     }
   };
 
-  // ✅ Clear filters
+  //  Clear filters
   const clearFilters = () => {
     setSearchTerm('');
     setRoleFilter('all');
   };
 
-  // ✅ Get unique roles for filter dropdown
+  //  Get unique roles for filter dropdown
   const getUniqueRoles = () => {
     const roles = users.map(user => user.role);
     return [...new Set(roles)];
@@ -129,7 +129,7 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* ✅ Search & Filter Section */}
+      {/*  Search & Filter Section */}
       <div className="mb-6 flex flex-col md:flex-row gap-4">
         {/* Search Box */}
         <div className="flex-1 relative">
@@ -180,7 +180,7 @@ export default function AdminUsers() {
         )}
       </div>
 
-      {/* ✅ Filter Info */}
+      {/*  Filter Info */}
       {(searchTerm || roleFilter !== 'all') && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-400">
           <span>Filters applied:</span>
@@ -292,7 +292,7 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* ✅ Users Count Footer */}
+      {/*  Users Count Footer */}
       <div className="mt-4 text-sm text-slate-500 text-right">
         Showing {filteredUsers.length} of {users.length} users
       </div>
